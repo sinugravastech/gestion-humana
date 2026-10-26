@@ -2274,9 +2274,6 @@ body.sb-contraida #panel-perfil{left:56px}
           <div class="catalog-list-item" onclick="loadCatalog('novedades_tipos',this)"><span data-catalogo="novedades_tipos">Tipos de Novedad</span> <span class="catalog-count" id="cc-novedades_tipos">—</span></div>
           <div class="catalog-list-item" onclick="loadCatalog('fondosCesantias',this)"><span data-catalogo="fondosCesantias">Fondos de cesant&iacute;as</span> <span class="catalog-count" id="cc-fondosCesantias">—</span></div>
           <div class="catalog-list-item" onclick="loadCatalog('tiposAdjunto',this)"><span data-catalogo="tiposAdjunto">Adjuntos</span> <span class="catalog-count" id="cc-tiposAdjunto">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('tallasCamisa',this)"><span data-catalogo="tallasCamisa">Tallas de camisa</span> <span class="catalog-count" id="cc-tallasCamisa">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('tallasPantalon',this)"><span data-catalogo="tallasPantalon">Tallas de pantal&oacute;n</span> <span class="catalog-count" id="cc-tallasPantalon">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('tallasZapatos',this)"><span data-catalogo="tallasZapatos">Tallas de zapatos</span> <span class="catalog-count" id="cc-tallasZapatos">—</span></div>
         </div>
         <div class="catalog-panel">
           <div class="catalog-panel-header">
@@ -3283,16 +3280,16 @@ body.sb-contraida #panel-perfil{left:56px}
 
         <div class="form-section">Dotación</div>
         <div class="form-group">
-          <label class="form-label" data-campo="tallasCamisa">Talla de camisa</label>
-          <select class="form-select" id="f_talla_camisa" style="width:100%"></select>
+          <label class="form-label">Talla de camisa</label>
+          <input type="text" class="form-input" id="f_talla_camisa" maxlength="30" placeholder="Ej: M, 14, 38">
         </div>
         <div class="form-group">
-          <label class="form-label" data-campo="tallasPantalon">Talla de pantalón</label>
-          <select class="form-select" id="f_talla_pantalon" style="width:100%"></select>
+          <label class="form-label">Talla de pantalón</label>
+          <input type="text" class="form-input" id="f_talla_pantalon" maxlength="30" placeholder="Ej: 32, 10, M">
         </div>
         <div class="form-group">
-          <label class="form-label" data-campo="tallasZapatos">Talla de zapatos</label>
-          <select class="form-select" id="f_talla_zapatos" style="width:100%"></select>
+          <label class="form-label">Talla de zapatos</label>
+          <input type="text" class="form-input" id="f_talla_zapatos" maxlength="30" placeholder="Ej: 40, 37">
         </div>
 
         <div class="form-section">Notas</div>
@@ -4373,9 +4370,9 @@ function openPanel(id){
     ['Aux. de transporte',emp.aux_transporte],
   ]);
   document.getElementById('infoDotacion').innerHTML=renderInfoGrid([
-    [nombreCampo('tallasCamisa'),emp.talla_camisa],
-    [nombreCampo('tallasPantalon'),emp.talla_pantalon],
-    [nombreCampo('tallasZapatos'),emp.talla_zapatos],
+    ['Talla de camisa',emp.talla_camisa],
+    ['Talla de pantalón',emp.talla_pantalon],
+    ['Talla de zapatos',emp.talla_zapatos],
   ]);
 
   // Seguridad Social
@@ -4671,9 +4668,6 @@ async function saveEdit(){
   datosNuevos.afp       = _snapToCatalog(datosNuevos.afp,       'afp');
   datosNuevos.arl       = _snapToCatalog(datosNuevos.arl,       'arl');
   datosNuevos.municipio = _snapToCatalog(datosNuevos.municipio, 'municipios');
-  datosNuevos.talla_camisa   = _snapToCatalog(datosNuevos.talla_camisa,   'tallasCamisa');
-  datosNuevos.talla_pantalon = _snapToCatalog(datosNuevos.talla_pantalon, 'tallasPantalon');
-  datosNuevos.talla_zapatos  = _snapToCatalog(datosNuevos.talla_zapatos,  'tallasZapatos');
 
   // No permitir crear un empleado NUEVO como ACTIVO si esa misma cédula ya está ACTIVA en
   // otro contrato — evita que una persona quede con 2 contratos activos a la vez por error.
@@ -5594,7 +5588,7 @@ function _construirWorkbookEmpleados(source, esFiltrado) {
     'FECHA DE NACIMIENTO *', 'EDAD', H('escolaridad'), 'DIRECCION',
     'CELULAR', H('cargos') + ' *', H('municipios'), H('departamentos'),
     'HORAS LABORALES', 'SALARIO', 'AUX. DE TRANSPORTE', H('eps'), H('afp'), H('arl'),
-    H('nivelesRiesgo'), 'CORREO', 'INCAPACITADO', H('tallasCamisa'), H('tallasPantalon'), H('tallasZapatos'), 'NOTAS'
+    H('nivelesRiesgo'), 'CORREO', 'INCAPACITADO', 'TALLA CAMISA', 'TALLA PANTALON', 'TALLA ZAPATOS', 'NOTAS'
   ];
   const FIELDS = [
     'cliente','nombre','cedula','ingreso','retiro','motivo','estado','genero',
@@ -6307,9 +6301,9 @@ async function commitImport() {
       eps:          _norm(row.eps, 'eps'),
       afp:          _norm(row.afp, 'afp'),      arl:     _norm(row.arl, 'arl'),
       riesgo:       row.riesgo      ||'',       correo:  row.correo   ||'',
-      talla_camisa:   _snapToCatalog((row.talla_camisa||'').toString().trim(), 'tallasCamisa'),
-      talla_pantalon: _snapToCatalog((row.talla_pantalon||'').toString().trim(), 'tallasPantalon'),
-      talla_zapatos:  _snapToCatalog((row.talla_zapatos||'').toString().trim(), 'tallasZapatos'),
+      talla_camisa:   (row.talla_camisa||'').toString().trim(),
+      talla_pantalon: (row.talla_pantalon||'').toString().trim(),
+      talla_zapatos:  (row.talla_zapatos||'').toString().trim(),
       incapacitado: row.incapacitado||'',       notas:   notasExtra,
       tiene_errores: row.status === 'error',
     };
@@ -6679,10 +6673,6 @@ const CATALOGS = {
   tiposAdjunto:[
     'Cédula', 'Contrato', 'Hoja de vida', 'Examen médico', 'Paz y salvo', 'Otro'
   ],
-  // Tallas para la dotación: arrancan vacías, cada empresa pone las suyas
-  tallasCamisa:[],
-  tallasPantalon:[],
-  tallasZapatos:[],
 };
 const CATALOG_TITLES = {
   clientes:'Proyectos', cargos:'Cargos', eps:'EPS',
@@ -6690,16 +6680,14 @@ const CATALOG_TITLES = {
   departamentos:'Departamentos', motivosRetiro:'Motivos de retiro',
   escolaridad:'Nivel de Escolaridad', tiposDocumento:'Tipos de documento',
   nivelesRiesgo:'Niveles de riesgo', novedades_tipos:'Tipos de Novedad',
-  fondosCesantias:'Fondos de cesantías', tiposAdjunto:'Adjuntos',
-  tallasCamisa:'Tallas de camisa', tallasPantalon:'Tallas de pantalón', tallasZapatos:'Tallas de zapatos'
+  fondosCesantias:'Fondos de cesantías', tiposAdjunto:'Adjuntos'
 };
 // Nombre del campo que llena cada catálogo, en singular, como sale en el formulario y la ficha
 const CATALOG_CAMPOS = {
   clientes:'Proyecto', cargos:'Cargo', eps:'EPS', afp:'AFP / Pensión', arl:'ARL',
   municipios:'Municipio de trabajo', departamentos:'Departamento', motivosRetiro:'Motivo de retiro',
   escolaridad:'Nivel de escolaridad', tiposDocumento:'Tipo de documento', nivelesRiesgo:'Nivel de riesgo',
-  novedades_tipos:'Tipo de novedad', fondosCesantias:'Fondo de cesantías', tiposAdjunto:'Tipo de adjunto',
-  tallasCamisa:'Talla de camisa', tallasPantalon:'Talla de pantalón', tallasZapatos:'Talla de zapatos'
+  novedades_tipos:'Tipo de novedad', fondosCesantias:'Fondo de cesantías', tiposAdjunto:'Tipo de adjunto'
 };
 // Los nombres de fábrica, para «Volver al nombre original»
 const CATALOG_TITLES_FABRICA = Object.assign({}, CATALOG_TITLES);
@@ -6708,8 +6696,7 @@ const CATALOG_USAGE = {
   clientes:{max:500},cargos:{max:2000},eps:{max:500},afp:{max:500},
   arl:{max:500},municipios:{max:7991},departamentos:{max:7991},
   motivosRetiro:{max:7991},escolaridad:{max:7991},tiposDocumento:{max:7991},nivelesRiesgo:{max:7991},
-  novedades_tipos:{max:50}, fondosCesantias:{max:50},
-  tallasCamisa:{max:100}, tallasPantalon:{max:100}, tallasZapatos:{max:100}
+  novedades_tipos:{max:50}, fondosCesantias:{max:50}
 };
 
 // ── Nombres de los catálogos ───────────────────────────────────────────────
@@ -6746,8 +6733,7 @@ const frase = clave => FRASES_CAMPO[clave] ? FRASES_CAMPO[clave]() : '';
 const _ENCABEZADO_FABRICA = {
   clientes:'PROYECTO', cargos:'CARGO', eps:'EPS', afp:'AFP', arl:'ARL',
   municipios:'MUNICIPIO DE TRABAJO', departamentos:'DEPARTAMENTO', motivosRetiro:'MOTIVO DE RETIRO',
-  escolaridad:'NIVEL DE ESCOLARIDAD', nivelesRiesgo:'NIVEL DE RIESGO',
-  tallasCamisa:'TALLA CAMISA', tallasPantalon:'TALLA PANTALON', tallasZapatos:'TALLA ZAPATOS'
+  escolaridad:'NIVEL DE ESCOLARIDAD', nivelesRiesgo:'NIVEL DE RIESGO'
 };
 function encabezadoCampo(key) {
   return nombreCampo(key) === CATALOG_CAMPOS_FABRICA[key] && _ENCABEZADO_FABRICA[key]
@@ -6850,8 +6836,7 @@ let activeCatalog = 'clientes';
 
 function initCatalogs(){
   // Populate form selects from catalogs
-  const selMap = {f_cliente:'clientes',f_cargo:'cargos',f_eps:'eps',f_afp:'afp',f_arl:'arl',f_municipio:'municipios',
-                  f_talla_camisa:'tallasCamisa',f_talla_pantalon:'tallasPantalon',f_talla_zapatos:'tallasZapatos'};
+  const selMap = {f_cliente:'clientes',f_cargo:'cargos',f_eps:'eps',f_afp:'afp',f_arl:'arl',f_municipio:'municipios'};
   Object.entries(selMap).forEach(([elId, catKey])=>{
     const el = document.getElementById(elId);
     if(!el) return;
@@ -6925,8 +6910,7 @@ function refreshCatalogIfVisible(){
 const CATALOG_FIELD_MAP = {
   clientes:'cliente', cargos:'cargo', eps:'eps', afp:'afp', arl:'arl',
   municipios:'municipio', departamentos:'departamento', motivosRetiro:'motivo',
-  escolaridad:'escolaridad', nivelesRiesgo:'riesgo',
-  tallasCamisa:'talla_camisa', tallasPantalon:'talla_pantalon', tallasZapatos:'talla_zapatos'
+  escolaridad:'escolaridad', nivelesRiesgo:'riesgo'
 };
 
 function getCatalogUsage(key) {
@@ -11134,8 +11118,7 @@ function downloadTemplate(){
     ['5. ' + ['clientes','cargos','eps','afp','arl','municipios'].map(encabezadoCampo).join(', ') + ' y ' + encabezadoCampo('escolaridad')
       + ' deben existir en Catálogos (mayúsculas y tildes no importan).'],
     ['6. HORAS LABORALES: 04 HORAS, 08 HORAS, 12 HORAS o TURNOS.'],
-    ['7. ' + ['tallasCamisa','tallasPantalon','tallasZapatos'].map(encabezadoCampo).join(', ')
-      + ': opcionales; si se llenan, que sean tallas que existan en Catálogos.'],
+    ['7. TALLA CAMISA, TALLA PANTALON y TALLA ZAPATOS: opcionales y libres (se escribe la talla tal como se usa).'],
     ['8. Antes de guardar, la importación muestra un resumen con errores y advertencias para revisar.']
   ]);
   instrucciones['!cols'] = [{ wch: 110 }];
@@ -12491,7 +12474,6 @@ const COMBOBOX_MAP = {
   f_cliente:'clientes', f_cargo:'cargos', f_eps:'eps',
   f_afp:'afp', f_arl:'arl', f_municipio:'municipios',
   f_motivo:'motivosRetiro',
-  f_talla_camisa:'tallasCamisa', f_talla_pantalon:'tallasPantalon', f_talla_zapatos:'tallasZapatos',
   'nov-eps':'eps', 'nov-arl':'arl', 'eno-eps':'eps', 'eno-arl':'arl',
   // Edición Masiva (Corrección de Datos): sin buscador era fácil escoger por error una opción
   // parecida y adyacente en la lista (p. ej. "Obra puente sur" en vez de
