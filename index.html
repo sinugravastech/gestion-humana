@@ -19,10 +19,10 @@
   // La llave 'anon' es segura de incluir aquí: solo permite lo que las reglas (RLS) autoricen.
   const SUPABASE_URL = 'https://jdhhemnnxttiwhdknyry.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkaGhlbW5ueHR0aXdoZGtueXJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NjExOTYsImV4cCI6MjEwODMzNzE5Nn0.3MNPh_J1Sb5ssgqsGq6V4t3kVg5qlZjw-8qb8xbpquk';
-  // En este PC (el archivo abierto directo o localhost) la página es una VERSIÓN DE PRUEBA: trabaja sobre
-  // una base simulada que se guarda solo en este navegador, con datos inventados, así que nada de lo que
-  // se haga aquí toca la versión publicada. Se entra con cualquier correo y contraseña.
-  // Solo para revisar algo contra la base real desde aquí: index.html?nube=supabase.
+  // En este PC (el archivo abierto directo o localhost) la página es una VERSIÓN DE PRUEBA: se entra con
+  // la cuenta y la contraseña reales y se trae una COPIA de los datos reales a este navegador
+  // (pruebas/base-local.js). Todo lo que se cambie queda solo en la copia: nada toca la versión publicada.
+  // Al cerrar sesión la copia se borra. Solo para trabajar sobre la base real desde aquí: ?nube=supabase.
   // En la página publicada nunca hay modo de prueba.
   const EN_ESTE_PC = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   const MODO_LOCAL = !SUPABASE_URL || (EN_ESTE_PC && !/[?&]nube=supabase(&|$)/.test(location.search));
@@ -41,7 +41,7 @@
     document.write('<script src="pruebas/datos-inventados.js?v=' + _v + '"><\/script><script src="pruebas/base-local.js?v=' + _v + '"><\/script>');
     document.addEventListener('DOMContentLoaded', () => {
       const pildora = document.querySelector('.login-secure-pill');
-      if (pildora) pildora.innerHTML = '<span class="login-secure-dot"></span>Versi&oacute;n de prueba · no toca la real · cualquier contrase&ntilde;a';
+      if (pildora) pildora.innerHTML = '<span class="login-secure-dot"></span>Versi&oacute;n de prueba · entra con tu cuenta · tus cambios no tocan la real';
       _avisoVersionPC('Versión de prueba de este PC · no toca la versión real', '#0f766e');
     });
   } else if (EN_ESTE_PC) {
@@ -1295,18 +1295,16 @@ tbody td{font-size:12.5px}
 .emp-avatar.m,.panel-avatar.m{background:linear-gradient(135deg,var(--brand-400),var(--brand-700))}
 .emp-avatar.f,.panel-avatar.f{background:linear-gradient(135deg,#9a80e0,#6d4aca)}
 
-/* ── Ficha del empleado: página completa (como la hoja de vida de flota) ──── */
-#panel-overlay,#panel-overlay.open{display:none!important}
-#panel-perfil{top:0;bottom:0;right:0;left:248px;width:auto;height:auto;z-index:60;background:var(--bg);
-  box-shadow:none;transition:none;display:none;overflow-y:auto}
-#panel-perfil.open{display:flex;right:0}
-body.sb-contraida #panel-perfil{left:56px}
-.panel-migas{display:flex;align-items:center;gap:6px;padding:18px 24px 0;font-size:12px;color:var(--text3);flex-shrink:0}
-.panel-migas button{background:none;border:0;padding:0;font:inherit;color:var(--text3);cursor:pointer}
-.panel-migas button:hover{color:var(--brand-500)}
-#panelMigasNombre{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.panel-header{margin:12px 24px 0;padding:20px 22px;background:var(--card);border:1px solid var(--border);border-radius:12px;
-  box-shadow:var(--shadow);align-items:center;flex-wrap:wrap;gap:14px}
+/* ── Ficha del empleado: panel encima, desde la derecha (como en el sistema base). Se cierra con un
+      clic afuera o con Esc ───────────────────────────────────────────────────────────────────────── */
+#panel-overlay{background:rgba(15,23,42,.38);backdrop-filter:blur(3px)}
+#panel-perfil{right:0;width:min(1000px,94vw);height:100vh;background:var(--bg);box-shadow:-10px 0 40px rgba(15,23,42,.22);
+  transform:translateX(104%);visibility:hidden;transition:transform .28s cubic-bezier(.4,0,.2,1),visibility 0s linear .28s;
+  display:flex;flex-direction:column;overflow:hidden}
+#panel-perfil.open{right:0;transform:none;visibility:visible;transition:transform .28s cubic-bezier(.4,0,.2,1),visibility 0s}
+.panel-migas{display:none}
+.panel-header{margin:0;padding:20px 28px;background:var(--card);border:0;border-bottom:1px solid var(--border);border-radius:0;
+  box-shadow:none;align-items:center;flex-wrap:wrap;gap:14px;flex-shrink:0}
 .panel-avatar{width:60px;height:60px;font-size:21px}
 /* Foto del empleado: tapa las iniciales cuando la hay */
 /* Foto del empleado: una <img> dentro del círculo de iniciales (así también se abre con clic derecho) */
@@ -1333,10 +1331,10 @@ body.sb-contraida #panel-perfil{left:56px}
 .panel-name{font-size:20px;font-weight:700;letter-spacing:-.02em}
 .panel-meta{font-size:12.5px;color:var(--text3);margin-top:3px}
 .panel-close{border-color:var(--ink-300);color:var(--text2);font-size:12.5px;padding:5px 10px}
-.panel-tabs{margin:14px 24px 0;padding:0;background:transparent;border-bottom:none;box-shadow:inset 0 -1px 0 var(--border);overflow-x:auto;scrollbar-width:none}
-.panel-tab{padding:9px 13px;font-size:12.5px;color:var(--text3)}
-.panel-body{flex:none;overflow:visible}
-.panel-tab-content{padding:16px 24px 40px}
+.panel-tabs{margin:0;padding:0 28px;background:var(--card);border-bottom:none;box-shadow:inset 0 -1px 0 var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.panel-tab{padding:12px 13px;font-size:12.5px;color:var(--text3)}
+.panel-body{flex:1;overflow-y:auto}
+.panel-tab-content{padding:20px 28px 40px}
 .info-grid{border-radius:12px;background:var(--card);box-shadow:var(--shadow)}
 .info-cell:nth-child(odd){background:var(--ink-50)}
 
@@ -4522,6 +4520,15 @@ function closePanel(){
   document.getElementById('panel-overlay').classList.remove('open');
   document.getElementById('panel-perfil').classList.remove('open');
 }
+
+// Esc cierra la ficha, salvo que haya otra ventana abierta encima (esa se cierra primero). Va en la
+// fase de captura para mirar antes de que las otras ventanas se cierren con la misma tecla.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || !document.getElementById('panel-perfil')?.classList.contains('open')) return;
+  const otraEncima = document.getElementById('modal-overlay')?.classList.contains('open')
+    || Array.from(document.querySelectorAll('.bulk-modal-overlay')).some(m => m.style.display === 'flex');
+  if (!otraEncima) closePanel();
+}, true);
 
 // Mensaje legible cuando la base de datos impide borrar un empleado. El caso conocido es que tenga
 // casos de Seguimiento médico y quien borra no sea el administrador del sistema (el administrador
