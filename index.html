@@ -19,10 +19,12 @@
   // La llave 'anon' es segura de incluir aquí: solo permite lo que las reglas (RLS) autoricen.
   const SUPABASE_URL = 'https://jdhhemnnxttiwhdknyry.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkaGhlbW5ueHR0aXdoZGtueXJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NjExOTYsImV4cCI6MjEwODMzNzE5Nn0.3MNPh_J1Sb5ssgqsGq6V4t3kVg5qlZjw-8qb8xbpquk';
-  // En este PC (localhost o el archivo abierto directo) se trabaja en MODO LOCAL, con la base simulada y
-  // datos inventados. Para probar desde aquí contra el Supabase de verdad: index.html?nube=supabase
+  // En este PC (el archivo abierto directo o localhost) la página usa la base REAL, igual que la publicada:
+  // así se revisan los cambios con los datos de verdad antes de subirlos a GitHub. El MODO DE PRUEBA, con la
+  // base simulada y datos inventados, se pide con index.html?prueba (o con los atajos de las pruebas,
+  // ?entrar=1). En la página publicada nunca hay modo de prueba.
   const EN_ESTE_PC = location.protocol === 'file:' || /^(localhost|127.0.0.1)$/.test(location.hostname);
-  const MODO_LOCAL = !SUPABASE_URL || (EN_ESTE_PC && new URLSearchParams(location.search).get('nube') !== 'supabase');
+  const MODO_LOCAL = !SUPABASE_URL || (EN_ESTE_PC && /[?&](prueba|entrar)(=|&|$)/.test(location.search));
   if (MODO_LOCAL) {
     document.write('<script src="pruebas/datos-inventados.js"><\/script><script src="pruebas/base-local.js"><\/script>');
     // En el ingreso se avisa que es el modo local y se deja escrito el usuario de prueba
@@ -31,6 +33,17 @@
       if (correo && !correo.value && window.BaseLocal) correo.value = window.BaseLocal.usuariosDePrueba()[0] || '';
       const pildora = document.querySelector('.login-secure-pill');
       if (pildora) pildora.innerHTML = '<span class="login-secure-dot"></span>Modo local · datos inventados · cualquier contrase&ntilde;a';
+    });
+  } else if (EN_ESTE_PC) {
+    // La copia de este PC conectada a la base real: un aviso para no confundirla con la publicada
+    document.addEventListener('DOMContentLoaded', () => {
+      const pildora = document.querySelector('.login-secure-pill');
+      if (pildora) pildora.innerHTML = '<span class="login-secure-dot" style="background:#e07b12"></span>Versi&oacute;n de este PC · datos reales';
+      const aviso = document.createElement('div');
+      aviso.id = 'aviso-version-pc';
+      aviso.textContent = 'Versión de este PC · datos reales';
+      aviso.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:9999;background:#e07b12;color:#fff;font:600 11px/1 "Segoe UI",system-ui,sans-serif;padding:6px 10px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.2);pointer-events:none';
+      document.body.appendChild(aviso);
     });
   }
 </script>
@@ -1286,6 +1299,13 @@ body.sb-contraida #panel-perfil{left:56px}
 .panel-header{margin:12px 24px 0;padding:20px 22px;background:var(--card);border:1px solid var(--border);border-radius:12px;
   box-shadow:var(--shadow);align-items:center;flex-wrap:wrap;gap:14px}
 .panel-avatar{width:60px;height:60px;font-size:21px}
+/* Foto del empleado: tapa las iniciales cuando la hay */
+.emp-avatar.con-foto,.panel-avatar.con-foto{background-size:cover;background-position:center;background-color:#e8edf5;color:transparent}
+.panel-avatar-wrap{position:relative;flex-shrink:0}
+.panel-foto-btn,.panel-foto-quitar{position:absolute;border-radius:50%;border:2px solid #fff;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.panel-foto-btn{right:-4px;bottom:-4px;width:24px;height:24px;background:var(--brand-500,#2a52ad)}
+.panel-foto-quitar{right:-4px;top:-4px;width:20px;height:20px;background:#dc2626;font-size:10px;line-height:1}
+.info-subtitulo{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px}
 .panel-name{font-size:20px;font-weight:700;letter-spacing:-.02em}
 .panel-meta{font-size:12.5px;color:var(--text3);margin-top:3px}
 .panel-close{border-color:var(--ink-300);color:var(--text2);font-size:12.5px;padding:5px 10px}
@@ -1589,7 +1609,7 @@ body.sb-contraida #panel-perfil{left:56px}
 
         <!-- Top clientes bar -->
         <div class="chart-card wide">
-          <div class="chart-title">Empleados activos por proyecto</div>
+          <div class="chart-title" data-campo-min="clientes" data-prefijo="Empleados activos por ">Empleados activos por proyecto</div>
           <div class="chart-sub">Por número de empleados activos actuales</div>
           <div class="chart-wrap tall"><canvas id="chartClientes"></canvas></div>
         </div>
@@ -1652,7 +1672,7 @@ body.sb-contraida #panel-perfil{left:56px}
       <div class="search-bar">
         <div class="search-input-wrap">
           <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
-          <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, cédula, proyecto, cargo..." oninput="filterTable()">
+          <input type="text" class="search-input" id="searchInput" data-placeholder-busqueda placeholder="Buscar por nombre, cédula, proyecto, cargo..." oninput="filterTable()">
         </div>
         <select class="filter-select" id="filterEstado" onchange="filterTable()">
           <option value="">Todos los estados</option>
@@ -1673,7 +1693,7 @@ body.sb-contraida #panel-perfil{left:56px}
         <select class="filter-select" id="filterCriticos" onchange="filterTable()" style="color:var(--orange);font-weight:600">
           <option value="" style="color:var(--text2);font-weight:400">&#9888; Datos críticos</option>
           <option value="sin_nombre">Sin nombre</option>
-          <option value="sin_cliente">Sin proyecto</option>
+          <option value="sin_cliente" data-campo-min="clientes" data-prefijo="Sin ">Sin proyecto</option>
           <option value="sin_cedula">Sin cédula</option>
         </select>
         <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Limpiar</button>
@@ -1696,10 +1716,10 @@ body.sb-contraida #panel-perfil{left:56px}
         <div class="bulk-count">Seleccionados <span id="bulk-count-num">0</span></div>
         <div class="bulk-spacer"></div>
         <button class="bulk-btn editar" onclick="abrirModalBulkEdit()">
-          &#9998; Editar cargo / entidad
+          &#9998; <span data-frase="editarCargoCliente">Editar cargo / proyecto</span>
         </button>
         <button class="bulk-btn trasladar" onclick="abrirModalTrasladar()">
-          &#8652; Trasladar a otro proyecto
+          &#8652; <span data-frase="trasladar">Trasladar a otro proyecto</span>
         </button>
         <button class="bulk-btn deactivar" onclick="abrirModalDesactivar()">
           &#8595; Dar de baja
@@ -1722,8 +1742,8 @@ body.sb-contraida #panel-perfil{left:56px}
               <th onclick="sortTable('nombre')">Empleado <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></th>
               <th>Cédula</th>
               <th onclick="sortTable('estado')">Estado</th>
-              <th onclick="sortTable('cliente')">Proyecto</th>
-              <th onclick="sortTable('cargo')">Cargo</th>
+              <th onclick="sortTable('cliente')" data-campo="clientes">Proyecto</th>
+              <th onclick="sortTable('cargo')" data-campo="cargos">Cargo</th>
               <th onclick="sortTable('ingreso')">Ingreso</th>
               <th style="text-align:right">Acciones</th>
             </tr>
@@ -1926,7 +1946,7 @@ body.sb-contraida #panel-perfil{left:56px}
                 <th>Estado</th>
                 <th>Nombre completo</th>
                 <th>Cédula</th>
-                <th>Proyecto</th>
+                <th data-campo="clientes">Proyecto</th>
                 <th>Cargo</th>
                 <th>Problemas detectados</th>
                 <th style="text-align:right">Acción</th>
@@ -2073,7 +2093,7 @@ body.sb-contraida #panel-perfil{left:56px}
             <div class="alert-section-header">
               <div class="alert-section-title">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                Activos sin proyecto
+                <span data-campo-min="clientes" data-prefijo="Activos sin ">Activos sin proyecto</span>
               </div>
               <span class="alert-count-badge blue" id="badge-sin-cliente">0</span>
             </div>
@@ -2117,7 +2137,7 @@ body.sb-contraida #panel-perfil{left:56px}
       <!-- EDICIÓN MASIVA: filtra como en Empleados, selecciona y aplica un cambio a todos a la vez -->
       <div id="dup-content-masiva" style="display:none">
         <div style="background:var(--orange-light);border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#92400e">
-          &#9888; Filtra como quieras, selecciona los empleados y aplica un cambio de proyecto, cargo, EPS, AFP, ARL, municipio, departamento, escolaridad o motivo a todos a la vez. Revisa bien el resumen antes de confirmar — puedes deshacer solo el último cambio, y solo dentro de las 2 horas siguientes.
+          &#9888; Filtra como quieras, selecciona los empleados y aplica un cambio de <span data-campo-min="clientes">proyecto</span>, <span data-campo-min="cargos">cargo</span>, <span data-campo-min="eps">EPS</span>, <span data-campo-min="afp">AFP</span>, <span data-campo-min="arl">ARL</span>, <span data-campo-min="municipios">municipio</span>, <span data-campo-min="departamentos">departamento</span>, <span data-campo-min="escolaridad">escolaridad</span> o <span data-campo-min="motivosRetiro">motivo</span> a todos a la vez. Revisa bien el resumen antes de confirmar — puedes deshacer solo el último cambio, y solo dentro de las 2 horas siguientes.
         </div>
 
         <!-- Banner "Deshacer último cambio" — generado por renderMasEditUndoBanner() -->
@@ -2126,7 +2146,7 @@ body.sb-contraida #panel-perfil{left:56px}
         <div class="search-bar">
           <div class="search-input-wrap">
             <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
-            <input type="text" class="search-input" id="masEditSearchInput" placeholder="Buscar por nombre, cédula, proyecto, cargo..." oninput="filterMasEdit()">
+            <input type="text" class="search-input" id="masEditSearchInput" data-placeholder-busqueda placeholder="Buscar por nombre, cédula, proyecto, cargo..." oninput="filterMasEdit()">
           </div>
           <select class="filter-select" id="masEditFilterEstado" onchange="filterMasEdit()">
             <option value="">Todos los estados</option>
@@ -2171,7 +2191,7 @@ body.sb-contraida #panel-perfil{left:56px}
           <select class="filter-select" id="masEditFilterCriticos" onchange="filterMasEdit()" style="color:var(--orange);font-weight:600">
             <option value="" style="color:var(--text2);font-weight:400">&#9888; Datos críticos</option>
             <option value="sin_nombre">Sin nombre</option>
-            <option value="sin_cliente">Sin proyecto</option>
+            <option value="sin_cliente" data-campo-min="clientes" data-prefijo="Sin ">Sin proyecto</option>
             <option value="sin_cedula">Sin cédula</option>
           </select>
           <button class="btn btn-ghost btn-sm" onclick="clearMasEditFilters()">Limpiar</button>
@@ -2213,7 +2233,7 @@ body.sb-contraida #panel-perfil{left:56px}
                 <th>Empleado</th>
                 <th>Cédula</th>
                 <th>Estado</th>
-                <th>Proyecto</th>
+                <th data-campo="clientes">Proyecto</th>
                 <th>Cargo</th>
                 <th style="width:44px"></th>
               </tr>
@@ -2240,24 +2260,30 @@ body.sb-contraida #panel-perfil{left:56px}
       <div class="catalog-layout">
         <div class="catalog-sidebar">
           <div style="padding:10px 16px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)">Catálogos disponibles</div>
-          <div class="catalog-list-item active" onclick="loadCatalog('clientes',this)">Proyectos <span class="catalog-count" id="cc-clientes">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('cargos',this)">Cargos <span class="catalog-count" id="cc-cargos">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('eps',this)">EPS <span class="catalog-count" id="cc-eps">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('afp',this)">AFP / Pensi&#243;n <span class="catalog-count" id="cc-afp">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('arl',this)">ARL <span class="catalog-count" id="cc-arl">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('municipios',this)">Municipios <span class="catalog-count" id="cc-municipios">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('departamentos',this)">Departamentos <span class="catalog-count" id="cc-departamentos">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('motivosRetiro',this)">Motivos de retiro <span class="catalog-count" id="cc-motivosRetiro">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('escolaridad',this)">Escolaridad <span class="catalog-count" id="cc-escolaridad">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('tiposDocumento',this)">Tipos de documento <span class="catalog-count" id="cc-tiposDocumento">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('nivelesRiesgo',this)">Niveles de riesgo <span class="catalog-count" id="cc-nivelesRiesgo">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('novedades_tipos',this)">Tipos de Novedad <span class="catalog-count" id="cc-novedades_tipos">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('fondosCesantias',this)">Fondos de cesant&iacute;as <span class="catalog-count" id="cc-fondosCesantias">—</span></div>
-          <div class="catalog-list-item" onclick="loadCatalog('tiposAdjunto',this)">Adjuntos <span class="catalog-count" id="cc-tiposAdjunto">—</span></div>
+          <div class="catalog-list-item active" onclick="loadCatalog('clientes',this)"><span data-catalogo="clientes">Proyectos</span> <span class="catalog-count" id="cc-clientes">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('cargos',this)"><span data-catalogo="cargos">Cargos</span> <span class="catalog-count" id="cc-cargos">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('eps',this)"><span data-catalogo="eps">EPS</span> <span class="catalog-count" id="cc-eps">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('afp',this)"><span data-catalogo="afp">AFP / Pensi&#243;n</span> <span class="catalog-count" id="cc-afp">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('arl',this)"><span data-catalogo="arl">ARL</span> <span class="catalog-count" id="cc-arl">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('municipios',this)"><span data-catalogo="municipios">Municipios</span> <span class="catalog-count" id="cc-municipios">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('departamentos',this)"><span data-catalogo="departamentos">Departamentos</span> <span class="catalog-count" id="cc-departamentos">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('motivosRetiro',this)"><span data-catalogo="motivosRetiro">Motivos de retiro</span> <span class="catalog-count" id="cc-motivosRetiro">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('escolaridad',this)"><span data-catalogo="escolaridad">Escolaridad</span> <span class="catalog-count" id="cc-escolaridad">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('tiposDocumento',this)"><span data-catalogo="tiposDocumento">Tipos de documento</span> <span class="catalog-count" id="cc-tiposDocumento">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('nivelesRiesgo',this)"><span data-catalogo="nivelesRiesgo">Niveles de riesgo</span> <span class="catalog-count" id="cc-nivelesRiesgo">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('novedades_tipos',this)"><span data-catalogo="novedades_tipos">Tipos de Novedad</span> <span class="catalog-count" id="cc-novedades_tipos">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('fondosCesantias',this)"><span data-catalogo="fondosCesantias">Fondos de cesant&iacute;as</span> <span class="catalog-count" id="cc-fondosCesantias">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('tiposAdjunto',this)"><span data-catalogo="tiposAdjunto">Adjuntos</span> <span class="catalog-count" id="cc-tiposAdjunto">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('tallasCamisa',this)"><span data-catalogo="tallasCamisa">Tallas de camisa</span> <span class="catalog-count" id="cc-tallasCamisa">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('tallasPantalon',this)"><span data-catalogo="tallasPantalon">Tallas de pantal&oacute;n</span> <span class="catalog-count" id="cc-tallasPantalon">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('tallasZapatos',this)"><span data-catalogo="tallasZapatos">Tallas de zapatos</span> <span class="catalog-count" id="cc-tallasZapatos">—</span></div>
         </div>
         <div class="catalog-panel">
           <div class="catalog-panel-header">
-            <div class="catalog-panel-title" id="catalogPanelTitle">Proyectos</div>
+            <div style="display:flex;gap:8px;align-items:center;min-width:0">
+              <div class="catalog-panel-title" id="catalogPanelTitle">Proyectos</div>
+              <button class="btn btn-ghost btn-sm" id="btn-renombrar-catalogo" onclick="abrirRenombrarCatalogo()" title="Cambiar el nombre de este catálogo y de su campo" style="display:none;white-space:nowrap">&#9998; Cambiar nombre</button>
+            </div>
             <div style="display:flex;gap:8px;align-items:center">
               <div style="position:relative">
                 <input type="text" placeholder="Buscar..." id="catalogSearch" oninput="filterCatalog()" style="padding:7px 10px 7px 30px;border:1px solid var(--border);border-radius:7px;font-size:12px;outline:none;width:200px;background:var(--bg)">
@@ -2345,7 +2371,7 @@ body.sb-contraida #panel-perfil{left:56px}
           </div>
           <!-- Solo aparece si se desmarcó "Mostrar todos los períodos" — para elegir CUÁL mostrar -->
           <div class="form-group" id="cert-row-periodo-laboral" style="display:none">
-            <label class="form-label">Periodo a mostrar en el certificado <span style="font-size:10px;color:var(--text3);font-weight:400">(el salario y las horas extras serán las de ese periodo)</span></label>
+            <label class="form-label">Periodo a mostrar en el certificado <span style="font-size:10px;color:var(--text3);font-weight:400">(el salario será el de ese periodo)</span></label>
             <select class="form-select" id="certPeriodoLaboral" onchange="_certAplicarPeriodoLaboral()"></select>
           </div>
 
@@ -2536,7 +2562,7 @@ body.sb-contraida #panel-perfil{left:56px}
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
             <div>
               <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px">Respaldo completo del sistema</div>
-              <div style="font-size:12px;color:#475569">Descarga un .zip con el Excel de empleados, el Excel de novedades y <strong>todos</strong> los documentos adjuntos (de empleados y de novedades). Úsalo para tu copia de seguridad manual diaria.</div>
+              <div style="font-size:12px;color:#475569">Descarga un .zip con el Excel de empleados, el Excel de novedades y <strong>todos</strong> los documentos adjuntos (de empleados y de novedades), con las fotos de los empleados. Úsalo para tu copia de seguridad manual diaria.</div>
             </div>
             <button id="btn-respaldo-completo" onclick="descargarRespaldoCompleto()" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .15s" onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -2622,7 +2648,7 @@ body.sb-contraida #panel-perfil{left:56px}
       <!-- Gráficos fila 2 -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="chart-card">
-          <div class="chart-title">Proyectos con m&#225;s bajas</div>
+          <div class="chart-title" data-catalogo-pre="clientes" data-sufijo=" con más bajas">Proyectos con m&#225;s bajas</div>
           <div class="chart-sub">Top 10 por n&#250;mero de retiros</div>
           <div class="chart-wrap" style="height:240px"><canvas id="chartRotCliente"></canvas></div>
         </div>
@@ -2685,7 +2711,14 @@ body.sb-contraida #panel-perfil{left:56px}
   <div class="panel-migas"><button type="button" onclick="closePanel()">Empleados</button><span>›</span><span id="panelMigasNombre">—</span></div>
   <div class="panel-header">
     <div class="panel-emp-info">
-      <div class="panel-avatar" id="panelAvatar">?</div>
+      <div class="panel-avatar-wrap">
+        <div class="panel-avatar" id="panelAvatar">?</div>
+        <button type="button" id="panelFotoBtn" class="panel-foto-btn" onclick="document.getElementById('panelFotoInput').click()" title="Subir o cambiar la foto" style="display:none">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <button type="button" id="panelFotoQuitar" class="panel-foto-quitar" onclick="_fotoFichaQuitar()" title="Quitar la foto" style="display:none">&#10005;</button>
+        <input type="file" id="panelFotoInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="_fotoFichaSubir(this)">
+      </div>
       <div>
         <div class="panel-name" id="panelNombre">—</div>
         <div class="panel-meta" id="panelMeta">—</div>
@@ -2737,6 +2770,8 @@ body.sb-contraida #panel-perfil{left:56px}
     </div>
     <div class="panel-tab-content" id="tab-laboral">
       <div class="info-grid" id="infoLaboral"></div>
+      <div class="info-subtitulo">Dotación</div>
+      <div class="info-grid" id="infoDotacion"></div>
     </div>
     <div class="panel-tab-content" id="tab-seguridad">
       <div class="info-grid" id="infoSeguridad"></div>
@@ -2763,22 +2798,48 @@ body.sb-contraida #panel-perfil{left:56px}
 </div>
 
 
+<!-- ══ MODAL CAMBIAR NOMBRE DE UN CATÁLOGO ══ -->
+<div id="modal-renombrar-catalogo" class="bulk-modal-overlay" style="display:none" onclick="if(event.target===this)cerrarRenombrarCatalogo()">
+  <div class="bulk-modal">
+    <div class="bulk-modal-header">&#9998; Cambiar nombre del cat&aacute;logo</div>
+    <div class="bulk-modal-body">
+      <div style="background:var(--blue-light);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--blue-dark)">
+        Cambia solo el nombre: los valores que ya tienen los empleados se quedan igual. El nombre nuevo lo ven todos.
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Nombre del cat&aacute;logo *</label>
+        <input type="text" class="form-input" id="renombrar-catalogo" maxlength="60" placeholder="Ej: Centros de costo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nombre del campo en el empleado *</label>
+        <input type="text" class="form-input" id="renombrar-campo" maxlength="60" placeholder="Ej: Centro de costo">
+        <span class="form-hint" id="renombrar-original"></span>
+      </div>
+    </div>
+    <div class="bulk-modal-footer">
+      <button class="btn btn-ghost" id="renombrar-restaurar" onclick="restaurarNombreCatalogo()" style="margin-right:auto">Volver al nombre original</button>
+      <button class="btn btn-ghost" onclick="cerrarRenombrarCatalogo()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarNombreCatalogo()">&#10003; Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL TRASLADO MASIVO ══ -->
 <div id="modal-trasladar" class="bulk-modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalTrasladar()">
   <div class="bulk-modal">
     <div class="bulk-modal-header">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-      Trasladar empleados a otro proyecto
+      <span data-frase="trasladarTitulo">Trasladar empleados a otro proyecto</span>
     </div>
     <div class="bulk-modal-body">
       <div style="background:var(--blue-light);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--blue-dark)">
-        <span id="trasladar-resumen">0 empleados seleccionados</span> pasar&#225;n al nuevo proyecto manteniendo todo su historial activo.
+        <span id="trasladar-resumen">0 empleados seleccionados</span> <span data-frase="trasladarResumen">pasarán al nuevo proyecto manteniendo todo su historial activo.</span>
       </div>
       <div class="form-group" style="margin-bottom:14px">
-        <label class="form-label">Nuevo proyecto *</label>
+        <label class="form-label"><span data-frase="nuevoCliente">Nuevo proyecto</span> *</label>
         <div class="combobox-wrap" style="flex:none">
           <input type="text" class="combobox-input" id="trasladar-cliente-input"
-            placeholder="Escribe para buscar proyecto..."
+            data-frase-placeholder="buscarCliente" placeholder="Escribe para buscar proyecto..."
             oninput="_cbOpenTrasladar()" onfocus="_cbOpenTrasladar()"
             onblur="setTimeout(()=>document.getElementById('trasladar-cliente-dd').style.display='none',200)"
             autocomplete="off">
@@ -2882,7 +2943,7 @@ body.sb-contraida #panel-perfil{left:56px}
         <span id="bulkedit-resumen">0 empleados</span> seleccionados. Elige los valores <strong>del cat&aacute;logo</strong>. Deja en &laquo;No cambiar&raquo; lo que no quieras modificar.
       </div>
       <div class="form-group" style="margin-bottom:14px">
-        <label class="form-label">Proyecto</label>
+        <label class="form-label" data-campo="clientes">Proyecto</label>
         <select class="form-select" id="bulkedit-cliente" style="width:100%">
           <option value="">— No cambiar —</option>
         </select>
@@ -2916,7 +2977,7 @@ body.sb-contraida #panel-perfil{left:56px}
       </div>
       <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px 12px">
         <div class="form-group">
-          <label class="form-label">Proyecto</label>
+          <label class="form-label" data-campo="clientes">Proyecto</label>
           <select class="form-select" id="masedit-cliente" style="width:100%"><option value="">— No cambiar —</option></select>
         </div>
         <div class="form-group">
@@ -3001,7 +3062,7 @@ body.sb-contraida #panel-perfil{left:56px}
       </div>
       <div class="table-wrap">
         <table class="table">
-          <thead><tr><th>Empleado</th><th>C&eacute;dula</th><th>Proyecto</th><th>Cargo</th><th>Ingreso</th><th>Retiro</th></tr></thead>
+          <thead><tr><th>Empleado</th><th>C&eacute;dula</th><th data-campo="clientes">Proyecto</th><th data-campo="cargos">Cargo</th><th>Ingreso</th><th>Retiro</th></tr></thead>
           <tbody id="dash-anio-modal-tbody"></tbody>
         </table>
       </div>
@@ -3101,6 +3162,14 @@ body.sb-contraida #panel-perfil{left:56px}
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-section">Información básica</div>
+        <div class="form-group full" id="f_foto_grupo">
+          <label class="form-label">Foto <span style="font-size:10px;color:var(--text3);font-weight:400">(opcional · JPG, PNG o WEBP)</span></label>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div class="emp-avatar foto-avatar" id="f_foto_preview" style="width:56px;height:56px;font-size:18px"></div>
+            <input type="file" id="f_foto" accept="image/jpeg,image/png,image/webp" onchange="_fotoFormElegida(this)" style="font-size:12px;max-width:260px">
+            <button type="button" class="btn btn-ghost btn-sm" id="f_foto_quitar" onclick="_fotoFormQuitar()" style="display:none">Quitar foto</button>
+          </div>
+        </div>
         <div class="form-group full">
           <label class="form-label">Nombre completo *</label>
           <input type="text" class="form-input" id="f_nombre" placeholder="Ej: JUAN CARLOS PÉREZ GÓMEZ">
@@ -3122,7 +3191,7 @@ body.sb-contraida #panel-perfil{left:56px}
           <input type="date" class="form-input" id="f_nacimiento">
         </div>
         <div class="form-group">
-          <label class="form-label">Nivel de escolaridad</label>
+          <label class="form-label" data-campo="escolaridad">Nivel de escolaridad</label>
           <select class="form-select" id="f_escolaridad">
             <option value="">— Sin especificar —</option>
             <option>PRIMARIA</option><option>BACHILLER</option><option>TÉCNICO</option><option>TECNÓLOGO</option><option>PROFESIONAL</option><option>POSGRADO</option>
@@ -3143,11 +3212,11 @@ body.sb-contraida #panel-perfil{left:56px}
 
         <div class="form-section">Información laboral</div>
         <div class="form-group">
-          <label class="form-label">Proyecto *</label>
+          <label class="form-label"><span data-campo="clientes">Proyecto</span> *</label>
           <select class="form-select" id="f_cliente" style="width:100%"></select>
         </div>
         <div class="form-group">
-          <label class="form-label">Cargo *</label>
+          <label class="form-label"><span data-campo="cargos">Cargo</span> *</label>
           <select class="form-select" id="f_cargo" style="width:100%"></select>
         </div>
         <div class="form-group">
@@ -3161,14 +3230,14 @@ body.sb-contraida #panel-perfil{left:56px}
           <span class="form-hint">Solo si aplica</span>
         </div>
         <div class="form-group">
-          <label class="form-label">Motivo de retiro</label>
+          <label class="form-label" data-campo="motivosRetiro">Motivo de retiro</label>
           <select class="form-select" id="f_motivo">
             <option value="">— Sin retiro —</option>
             <option>RENUNCIA</option><option>TERMINACION DE CONTRATO</option><option>ABANDONO</option><option>FALLECIMIENTO</option><option>PENSIÓN</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Municipio de trabajo</label>
+          <label class="form-label" data-campo="municipios">Municipio de trabajo</label>
           <select class="form-select" id="f_municipio" style="width:100%"></select>
         </div>
         <div class="form-group">
@@ -3186,26 +3255,22 @@ body.sb-contraida #panel-perfil{left:56px}
           <label class="form-label">Aux. de transporte <span style="font-size:10px;color:var(--text3);font-weight:400">(dejar vacío si no aplica)</span></label>
           <input type="text" inputmode="numeric" class="form-input" id="f_aux_transporte" placeholder="Ej: $200.000" oninput="_formatInputCOP(this)">
         </div>
-        <div class="form-group">
-          <label class="form-label">Horas extras <span style="font-size:10px;color:var(--text3);font-weight:400">(valor en pesos)</span></label>
-          <input type="text" inputmode="numeric" class="form-input" id="f_horas_extras" placeholder="Ej: $150.000" oninput="_formatInputCOP(this)">
-        </div>
 
         <div class="form-section">Seguridad social</div>
         <div class="form-group">
-          <label class="form-label">EPS</label>
+          <label class="form-label" data-campo="eps">EPS</label>
           <select class="form-select" id="f_eps" style="width:100%"></select>
         </div>
         <div class="form-group">
-          <label class="form-label">AFP / Pensión</label>
+          <label class="form-label" data-campo="afp">AFP / Pensión</label>
           <select class="form-select" id="f_afp" style="width:100%"></select>
         </div>
         <div class="form-group">
-          <label class="form-label">ARL</label>
+          <label class="form-label" data-campo="arl">ARL</label>
           <select class="form-select" id="f_arl" style="width:100%"></select>
         </div>
         <div class="form-group">
-          <label class="form-label">Nivel de riesgo</label>
+          <label class="form-label" data-campo="nivelesRiesgo">Nivel de riesgo</label>
           <select class="form-select" id="f_riesgo">
             <option value="">— Sin especificar —</option>
             <option value="I">I — Riesgo mínimo (0,522%)</option>
@@ -3214,6 +3279,20 @@ body.sb-contraida #panel-perfil{left:56px}
             <option value="IV">IV — Riesgo alto (4,350%)</option>
             <option value="V">V — Riesgo máximo (6,960%)</option>
           </select>
+        </div>
+
+        <div class="form-section">Dotación</div>
+        <div class="form-group">
+          <label class="form-label" data-campo="tallasCamisa">Talla de camisa</label>
+          <select class="form-select" id="f_talla_camisa" style="width:100%"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-campo="tallasPantalon">Talla de pantalón</label>
+          <select class="form-select" id="f_talla_pantalon" style="width:100%"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-campo="tallasZapatos">Talla de zapatos</label>
+          <select class="form-select" id="f_talla_zapatos" style="width:100%"></select>
         </div>
 
         <div class="form-section">Notas</div>
@@ -3635,7 +3714,7 @@ function initFilters(){
   if(cs){
     const prev = cs.value;
     const fuera = _valoresFueraCatalogo('cliente', CATALOGS.clientes||[]);
-    cs.innerHTML = '<option value="">Todos los proyectos</option>'
+    cs.innerHTML = '<option value="">' + escapeHTML(frase('todosClientes')) + '</option>'
       + `<option value="${FILTRO_FUERA_CATALOGO}">⚠ Fuera del catálogo (todos)</option>`
       + clientes.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('')
       + (fuera.length ? '<optgroup label="⚠ Fuera del catálogo — por valor">'
@@ -3646,7 +3725,7 @@ function initFilters(){
   if(cc){
     const prev = cc.value;
     const fuera = _valoresFueraCatalogo('cargo', CATALOGS.cargos||[]);
-    cc.innerHTML = '<option value="">Todos los cargos</option>'
+    cc.innerHTML = '<option value="">' + escapeHTML(frase('todosCargos')) + '</option>'
       + `<option value="${FILTRO_FUERA_CATALOGO}">⚠ Fuera del catálogo (todos)</option>`
       + cargos.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('')
       + (fuera.length ? '<optgroup label="⚠ Fuera del catálogo — por valor">'
@@ -3832,7 +3911,7 @@ async function ejecutarBulkEdit() {
   if (nuevoCargo)   cambios.cargo   = nuevoCargo;
 
   const desc = [
-    nuevoCliente ? 'Proyecto → "' + nuevoCliente + '"' : null,
+    nuevoCliente ? nombreCampo('clientes') + ' → "' + nuevoCliente + '"' : null,
     nuevoCargo   ? 'Cargo → "' + nuevoCargo + '"' : null
   ].filter(Boolean).join('\n');
 
@@ -3911,7 +3990,7 @@ async function ejecutarTrasladar() {
   if (_soloConsulta('empleados')) return;
   const nuevoCliente = document.getElementById('trasladar-cliente-val').value || document.getElementById('trasladar-cliente-input').value.trim();
   const fechaRaw     = document.getElementById('trasladar-fecha').value;
-  if (!nuevoCliente) { showToast('Selecciona el nuevo proyecto'); return; }
+  if (!nuevoCliente) { showToast('Falta elegir: ' + escapeHTML(frase('nuevoCliente'))); return; }
   if (!fechaRaw)     { showToast('Selecciona la fecha del traslado'); return; }
   if (!_clientePermitido(nuevoCliente)) { _avisoClienteNoPermitido(nuevoCliente); return; }  // con contratos, solo a los suyos
 
@@ -4013,8 +4092,10 @@ async function ejecutarReingreso() {
       genero: emp.genero||'', nacimiento: emp.nacimiento||'', edad: emp.edad||null,
       escolaridad: emp.escolaridad||'', direccion: emp.direccion||'', celular: emp.celular||'',
       municipio: emp.municipio||'', departamento: emp.departamento||'',
-      horas: emp.horas||'', salario: emp.salario||'', aux_transporte: emp.aux_transporte||'', horas_extras: emp.horas_extras||'',
+      horas: emp.horas||'', salario: emp.salario||'', aux_transporte: emp.aux_transporte||'',
       eps: emp.eps||'', afp: emp.afp||'', arl: emp.arl||'', riesgo: emp.riesgo||'',
+      talla_camisa: emp.talla_camisa||'', talla_pantalon: emp.talla_pantalon||'', talla_zapatos: emp.talla_zapatos||'',
+      foto_path: emp.foto_path||null,
       correo: emp.correo||'', incapacitado: emp.incapacitado||false, notas: emp.notas||'',
       ingreso: fechaIngreso, retiro: fechaFinNueva || null,
       estado: fechaFinNueva ? 'INACTIVO' : 'ACTIVO',
@@ -4119,11 +4200,11 @@ function getMissingFields(emp){
   if(!emp.celular) fields.push('Celular');
   if(!emp.direccion) fields.push('Dirección');
   if(!emp.nacimiento) fields.push('Fecha nacimiento');
-  if(!emp.eps) fields.push('EPS');
-  if(!emp.afp) fields.push('AFP');
-  if(!emp.arl) fields.push('ARL');
+  if(!emp.eps) fields.push(nombreCampo('eps'));
+  if(!emp.afp) fields.push(_esFabrica('afp') ? 'AFP' : nombreCampo('afp'));
+  if(!emp.arl) fields.push(nombreCampo('arl'));
   if(!emp.correo) fields.push('Correo');
-  if(!emp.escolaridad) fields.push('Escolaridad');
+  if(!emp.escolaridad) fields.push(_esFabrica('escolaridad') ? 'Escolaridad' : nombreCampo('escolaridad'));
   return fields;
 }
 
@@ -4150,7 +4231,7 @@ function renderTable(){
       </td>
       <td>
         <div class="emp-cell">
-          <div class="emp-avatar ${g}">${escapeHTML(ini)}</div>
+          <div class="emp-avatar ${g}"${emp.foto_path?` data-foto="${escapeHTML(emp.foto_path)}"`:''}>${escapeHTML(ini)}</div>
           <div>
             <div class="td-name">${escapeHTML(emp.nombre)}${missing?'<span class="warn-dot" title="Datos incompletos"></span>':''}</div>
             <div class="td-sub" style="display:flex;gap:5px;align-items:center">
@@ -4165,10 +4246,10 @@ function renderTable(){
       <td><span class="td-cedula">${emp.cedula?escapeHTML(emp.cedula):'<span style="color:#fca5a5;font-style:italic">Sin c&eacute;dula</span>'}</span></td>
       <td><span class="badge ${emp.estado==='ACTIVO'?'badge-activo':'badge-inactivo'}">${escapeHTML(emp.estado)}</span></td>
       <td>
-        <div class="td-name" style="font-weight:500;font-size:12px">${emp.cliente?escapeHTML(emp.cliente):'<span style="color:var(--text3);font-style:italic">Sin proyecto</span>'}</div>
+        <div class="td-name" style="font-weight:500;font-size:12px">${emp.cliente?escapeHTML(emp.cliente):'<span style="color:var(--text3);font-style:italic">'+escapeHTML(sinCampo('clientes'))+'</span>'}</div>
         ${retiroInfo}
       </td>
-      <td><div style="font-size:12px;color:var(--text2)">${emp.cargo?escapeHTML(emp.cargo):'<span style="color:var(--text3)">Sin cargo</span>'}</div></td>
+      <td><div style="font-size:12px;color:var(--text2)">${emp.cargo?escapeHTML(emp.cargo):'<span style="color:var(--text3)">'+escapeHTML(sinCampo('cargos'))+'</span>'}</div></td>
       <td><div style="font-size:12px">${escapeHTML(emp.ingreso||'—')}</div></td>
       <td>
         <div class="td-actions">
@@ -4182,6 +4263,7 @@ function renderTable(){
       </td>
     </tr>`;
   }).join('');
+  _fotosEnPantalla(tbody);
   renderPagination();
 }
 
@@ -4218,7 +4300,7 @@ function renderActiveFilters(){
   const genero=document.getElementById('filterGenero').value;
   const etiquetaFiltro = v => v === FILTRO_FUERA_CATALOGO ? '⚠ Fuera del catálogo' : v;
   if(estado) tags.push(`Estado: ${estado}`);
-  if(cliente) tags.push(`Proyecto: ${etiquetaFiltro(cliente)}`);
+  if(cliente) tags.push(`${escapeHTML(nombreCampo('clientes'))}: ${etiquetaFiltro(cliente)}`);
   if(cargo) tags.push(`Cargo: ${etiquetaFiltro(cargo)}`);
   if(genero) tags.push(`Género: ${genero}`);
   cont.innerHTML=tags.map(t=>`<span class="filter-tag">${t} <span onclick="clearFilters()">✕</span></span>`).join('');
@@ -4233,9 +4315,14 @@ function openPanel(id){
   const av=document.getElementById('panelAvatar');
   av.textContent=emp.cedula?getInitials(emp.nombre):'?';
   av.className='panel-avatar '+g;
+  _pintarFoto(av, null);
+  if (emp.foto_path) urlFoto(emp.foto_path).then(u => { if (currentEmpId === id) _pintarFoto(av, u); });
+  const puedeFoto = puedeEditar('empleados');
+  document.getElementById('panelFotoBtn').style.display = puedeFoto ? '' : 'none';
+  document.getElementById('panelFotoQuitar').style.display = (puedeFoto && emp.foto_path) ? '' : 'none';
   document.getElementById('panelNombre').textContent=emp.nombre;
   document.getElementById('panelMigasNombre').textContent=emp.nombre;
-  document.getElementById('panelMeta').textContent=`${emp.cargo||'Sin cargo'} · ${emp.cliente||'Sin proyecto'}`;
+  document.getElementById('panelMeta').textContent=`${emp.cargo||sinCampo('cargos')} · ${emp.cliente||sinCampo('clientes')}`;
   const pb=document.getElementById('panelBadge');
   pb.textContent=emp.estado;
   pb.className='badge '+(emp.estado==='ACTIVO'?'badge-activo':'badge-inactivo');
@@ -4262,7 +4349,7 @@ function openPanel(id){
     ['Género',emp.genero],
     ['Fecha de nacimiento',emp.nacimiento],
     ['Edad', (()=>{ const e=emp.edad||calcAge(emp.nacimiento); return e?e+' a\xf1os':''; })()],
-    ['Escolaridad',emp.escolaridad],
+    [nombreCampo('escolaridad'),emp.escolaridad],
     ['Dirección',emp.direccion],
     ['Celular',emp.celular,'required'],
     ['Correo',emp.correo],
@@ -4273,25 +4360,30 @@ function openPanel(id){
 
   // Laboral tab
   document.getElementById('infoLaboral').innerHTML=renderInfoGrid([
-    ['Proyecto',emp.cliente,'required'],
-    ['Cargo',emp.cargo,'required'],
+    [nombreCampo('clientes'),emp.cliente,'required'],
+    [nombreCampo('cargos'),emp.cargo,'required'],
     ['Estado',emp.estado],
     ['Fecha de ingreso',emp.ingreso],
     ['Fecha de retiro',emp.retiro],
-    ['Motivo de retiro',emp.motivo],
-    ['Municipio de trabajo',emp.municipio],
-    ['Departamento',emp.departamento],
+    [nombreCampo('motivosRetiro'),emp.motivo],
+    [nombreCampo('municipios'),emp.municipio],
+    [nombreCampo('departamentos'),emp.departamento],
     ['Horas laborales',emp.horas],
     ['Salario',emp.salario],
     ['Aux. de transporte',emp.aux_transporte],
   ]);
+  document.getElementById('infoDotacion').innerHTML=renderInfoGrid([
+    [nombreCampo('tallasCamisa'),emp.talla_camisa],
+    [nombreCampo('tallasPantalon'),emp.talla_pantalon],
+    [nombreCampo('tallasZapatos'),emp.talla_zapatos],
+  ]);
 
   // Seguridad Social
   document.getElementById('infoSeguridad').innerHTML=renderInfoGrid([
-    ['EPS',emp.eps,'required'],
-    ['AFP / Pensión',emp.afp,'required'],
-    ['ARL',emp.arl,'required'],
-    ['Nivel de riesgo',emp.riesgo?'Nivel '+emp.riesgo:''],
+    [nombreCampo('eps'),emp.eps,'required'],
+    [nombreCampo('afp'),emp.afp,'required'],
+    [nombreCampo('arl'),emp.arl,'required'],
+    [nombreCampo('nivelesRiesgo'),emp.riesgo?'Nivel '+emp.riesgo:''],
   ]);
 
   // Historial
@@ -4391,7 +4483,7 @@ async function eliminarEmpleado() {
   if (!confirm(
     '¿Eliminar permanentemente a:\n\n' +
     (emp.nombre || 'Sin nombre') + '\n' +
-    'CC: ' + (emp.cedula || '—') + '  ·  ' + (emp.cliente || 'Sin proyecto') + '\n\n' +
+    'CC: ' + (emp.cedula || '—') + '  ·  ' + (emp.cliente || sinCampo('clientes')) + '\n\n' +
     'Esta acción no se puede deshacer.\n¿Continuar?'
   )) return;
 
@@ -4475,10 +4567,11 @@ function openEditModal(id){
     nombre:'', cedula:'', estado:'ACTIVO', genero:'FEMENINO',
     nacimiento:'', escolaridad:'', direccion:'', celular:'', correo:'',
     cliente:'', cargo:'', ingreso:'', retiro:'', motivo:'',
-    municipio:'', horas:'', salario:'', aux_transporte:'', horas_extras:'', eps:'', afp:'', arl:'',
-    riesgo:'', notas:''
+    municipio:'', horas:'', salario:'', aux_transporte:'', eps:'', afp:'', arl:'',
+    riesgo:'', talla_camisa:'', talla_pantalon:'', talla_zapatos:'', notas:''
   };
-  if (emp) Object.keys(fields).forEach(k => { if (emp[k] !== undefined) fields[k] = emp[k]; });
+  if (emp) Object.keys(fields).forEach(k => { if (emp[k] !== undefined && emp[k] !== null) fields[k] = emp[k]; });
+  _fotoFormPreparar(emp);
 
   Object.keys(fields).forEach(k => {
     const el = document.getElementById('f_' + k);
@@ -4557,11 +4650,13 @@ async function saveEdit(){
     horas:       fv('f_horas'),
     salario:     fv('f_salario'),
     aux_transporte: fv('f_aux_transporte'),
-    horas_extras: fv('f_horas_extras'),
     eps:         fv('f_eps'),
     afp:         fv('f_afp'),
     arl:         fv('f_arl'),
     riesgo:      fv('f_riesgo'),
+    talla_camisa:   fv('f_talla_camisa'),
+    talla_pantalon: fv('f_talla_pantalon'),
+    talla_zapatos:  fv('f_talla_zapatos'),
     notas:       fv('f_notas'),
   };
   // Calcular edad si se ingresó fecha de nacimiento
@@ -4576,6 +4671,9 @@ async function saveEdit(){
   datosNuevos.afp       = _snapToCatalog(datosNuevos.afp,       'afp');
   datosNuevos.arl       = _snapToCatalog(datosNuevos.arl,       'arl');
   datosNuevos.municipio = _snapToCatalog(datosNuevos.municipio, 'municipios');
+  datosNuevos.talla_camisa   = _snapToCatalog(datosNuevos.talla_camisa,   'tallasCamisa');
+  datosNuevos.talla_pantalon = _snapToCatalog(datosNuevos.talla_pantalon, 'tallasPantalon');
+  datosNuevos.talla_zapatos  = _snapToCatalog(datosNuevos.talla_zapatos,  'tallasZapatos');
 
   // No permitir crear un empleado NUEVO como ACTIVO si esa misma cédula ya está ACTIVA en
   // otro contrato — evita que una persona quede con 2 contratos activos a la vez por error.
@@ -4584,7 +4682,7 @@ async function saveEdit(){
   if (!_editingEmpId && datosNuevos.estado === 'ACTIVO' && datosNuevos.cedula) {
     const activoExistente = EMPLEADOS.find(e => e.cedula === datosNuevos.cedula && e.estado === 'ACTIVO');
     if (activoExistente) {
-      showToast('⚠ Esta cédula ya está ACTIVA en otro contrato: ' + (activoExistente.cliente||'Sin proyecto') + ' — ' + (activoExistente.cargo||'Sin cargo') + '. No se puede agregar como activo mientras ese contrato siga activo.');
+      showToast('⚠ Esta cédula ya está ACTIVA en otro contrato: ' + (activoExistente.cliente||sinCampo('clientes')) + ' — ' + (activoExistente.cargo||sinCampo('cargos')) + '. No se puede agregar como activo mientras ese contrato siga activo.');
       return;
     }
   }
@@ -4608,6 +4706,7 @@ async function saveEdit(){
       const idx = EMPLEADOS.findIndex(e => e.id === _editingEmpId);
       if (idx !== -1) Object.assign(EMPLEADOS[idx], datosNuevos);
       await logAudit('update', 'empleados', _editingEmpId, 'Actualizo datos de: ' + (datosNuevos.nombre||'empleado'));
+      await _aplicarFotoDelFormulario(_editingEmpId);
       showToast('Empleado actualizado en Supabase');
     } else {
       // Crear en Supabase
@@ -4616,6 +4715,7 @@ async function saveEdit(){
       if (supInsert.error) { showToast('Error al crear: ' + supInsert.error.message); console.error(supInsert.error); return; }
       if (supInsert.data) EMPLEADOS.push(...supInsert.data);
       await logAudit('create', 'empleados', supInsert.data?.[0]?.id||'', 'Creo nuevo empleado: ' + (datosNuevos.nombre||'—'));
+      await _aplicarFotoDelFormulario(supInsert.data?.[0]?.id);
       showToast('Empleado creado en Supabase');
     }
 
@@ -4635,6 +4735,188 @@ async function saveEdit(){
   } finally {
     hideBlockingOverlay();
   }
+}
+
+// ── FOTO DEL EMPLEADO — depósito privado rh-fotos; la ruta queda en empleados.foto_path ──
+// Se muestra con enlaces firmados de una hora, que se guardan en memoria.
+const CARPETA_FOTOS = 'rh-fotos';
+const _fotoUrls = {};          // ruta → { url, vence }
+let _fotoFormNueva = null;     // foto ya achicada, elegida en el formulario
+let _fotoFormQuitada = false;  // en el formulario se pidió quitar la foto actual
+
+// Achica la imagen a máx. 512 px por lado y la pasa a JPEG (unos 50 a 120 KB)
+function _achicarFoto(archivo, lado = 512) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(archivo);
+    const img = new Image();
+    img.onload = () => {
+      const escala = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * escala));
+      const h = Math.max(1, Math.round(img.naturalHeight * escala));
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);   // fondo blanco para los PNG transparentes
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? resolve(b) : reject(new Error('No se pudo procesar la imagen')), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('El archivo no es una imagen válida')); };
+    img.src = url;
+  });
+}
+
+function _validarArchivoFoto(f) {
+  if (!f) return false;
+  if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { showToast('La foto debe ser JPG, PNG o WEBP'); return false; }
+  if (f.size > 15 * 1024 * 1024) { showToast('La foto pesa demasiado (máximo 15 MB)'); return false; }
+  return true;
+}
+
+async function urlFoto(ruta) {
+  if (!ruta) return null;
+  const c = _fotoUrls[ruta];
+  if (c && c.vence > Date.now()) return c.url;
+  const { data, error } = await sb.storage.from(CARPETA_FOTOS).createSignedUrl(ruta, 3600);
+  if (error || !data?.signedUrl) return null;
+  _fotoUrls[ruta] = { url: data.signedUrl, vence: Date.now() + 50 * 60 * 1000 };
+  return data.signedUrl;
+}
+
+// Pide de una sola vez los enlaces que falten (para una página de la tabla)
+async function _precargarFotos(rutas) {
+  const faltan = [...new Set(rutas.filter(r => r && !(_fotoUrls[r] && _fotoUrls[r].vence > Date.now())))];
+  if (!faltan.length) return;
+  const { data, error } = await sb.storage.from(CARPETA_FOTOS).createSignedUrls(faltan, 3600);
+  if (error || !Array.isArray(data)) return;
+  data.forEach(d => { if (d.signedUrl && d.path) _fotoUrls[d.path] = { url: d.signedUrl, vence: Date.now() + 50 * 60 * 1000 }; });
+}
+
+// Pone la foto en un círculo de iniciales; sin foto, vuelven las iniciales
+function _pintarFoto(el, url) {
+  if (!el) return;
+  if (url) { el.style.backgroundImage = 'url("' + url + '")'; el.classList.add('con-foto'); }
+  else { el.style.backgroundImage = ''; el.classList.remove('con-foto'); }
+}
+
+// Llena los círculos que tienen data-foto (la tabla de empleados)
+async function _fotosEnPantalla(raiz) {
+  const els = Array.from((raiz || document).querySelectorAll('[data-foto]'));
+  if (!els.length) return;
+  try { await _precargarFotos(els.map(e => e.dataset.foto)); } catch (e) { return; }
+  els.forEach(e => _pintarFoto(e, _fotoUrls[e.dataset.foto]?.url));
+}
+
+// Borra el archivo si ningún otro registro lo usa (un reingreso comparte la foto del contrato anterior)
+async function _borrarFotoSiNadieLaUsa(ruta, menosId) {
+  if (!ruta) return;
+  if (EMPLEADOS.some(e => e.foto_path === ruta && e.id !== menosId)) return;
+  await sb.storage.from(CARPETA_FOTOS).remove([ruta]);
+  delete _fotoUrls[ruta];
+}
+
+// Cambia la foto de un empleado: con una imagen ya achicada la sube; con null la quita
+async function guardarFotoEmpleado(empId, blob) {
+  const emp = EMPLEADOS.find(e => e.id === empId);
+  if (!emp) return false;
+  const anterior = emp.foto_path || null;
+  let nueva = null;
+  if (blob) {
+    nueva = empId + '/' + Date.now() + '.jpg';
+    const { error } = await sb.storage.from(CARPETA_FOTOS).upload(nueva, blob, { contentType: 'image/jpeg' });
+    if (error) { showToast('No se pudo subir la foto: ' + escapeHTML(error.message)); return false; }
+  }
+  const { error } = await sb.from('empleados').update({ foto_path: nueva }).eq('id', empId);
+  if (error) {
+    if (nueva) await sb.storage.from(CARPETA_FOTOS).remove([nueva]);
+    showToast('No se pudo guardar la foto: ' + escapeHTML(error.message));
+    return false;
+  }
+  emp.foto_path = nueva;
+  if (anterior && anterior !== nueva) await _borrarFotoSiNadieLaUsa(anterior, empId);
+  await logAudit('update', 'empleados', empId, (nueva ? 'Cambió la foto de: ' : 'Quitó la foto de: ') + (emp.nombre || 'empleado'));
+  return true;
+}
+
+// En el formulario (nuevo o editar), la foto se guarda junto con el empleado
+function _fotoFormPreparar(emp) {
+  _fotoFormNueva = null;
+  _fotoFormQuitada = false;
+  const inp = document.getElementById('f_foto');
+  if (inp) inp.value = '';
+  const prev = document.getElementById('f_foto_preview');
+  if (prev) {
+    prev.textContent = emp && emp.nombre ? getInitials(emp.nombre) : '';
+    prev.className = 'emp-avatar foto-avatar ' + (emp && emp.genero === 'FEMENINO' ? 'f' : 'm');
+    _pintarFoto(prev, null);
+    if (emp && emp.foto_path) urlFoto(emp.foto_path).then(u => { if (_editingEmpId === emp.id && !_fotoFormNueva && !_fotoFormQuitada) _pintarFoto(prev, u); });
+  }
+  const quitar = document.getElementById('f_foto_quitar');
+  if (quitar) quitar.style.display = emp && emp.foto_path ? '' : 'none';
+}
+
+async function _fotoFormElegida(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  if (!_validarArchivoFoto(f)) { input.value = ''; return; }
+  try {
+    _fotoFormNueva = await _achicarFoto(f);
+    _fotoFormQuitada = false;
+    _pintarFoto(document.getElementById('f_foto_preview'), URL.createObjectURL(_fotoFormNueva));
+    document.getElementById('f_foto_quitar').style.display = '';
+  } catch (e) { showToast(escapeHTML(e.message)); input.value = ''; }
+}
+
+function _fotoFormQuitar() {
+  _fotoFormNueva = null;
+  _fotoFormQuitada = true;
+  const inp = document.getElementById('f_foto');
+  if (inp) inp.value = '';
+  _pintarFoto(document.getElementById('f_foto_preview'), null);
+  document.getElementById('f_foto_quitar').style.display = 'none';
+}
+
+// Después de guardar el empleado: sube la foto elegida o quita la que tenía
+async function _aplicarFotoDelFormulario(empId) {
+  if (!empId || (!_fotoFormNueva && !_fotoFormQuitada)) return;
+  const emp = EMPLEADOS.find(e => e.id === empId);
+  if (_fotoFormQuitada && !(emp && emp.foto_path)) { _fotoFormQuitada = false; return; }
+  await guardarFotoEmpleado(empId, _fotoFormNueva);
+  _fotoFormNueva = null;
+  _fotoFormQuitada = false;
+}
+
+// En la ficha: el botón de la cámara y la ✕ sobre el círculo
+async function _fotoFichaSubir(input) {
+  const f = input.files && input.files[0];
+  input.value = '';
+  if (!f || !currentEmpId || !puedeEditar('empleados')) return;
+  if (!_validarArchivoFoto(f)) return;
+  const empId = currentEmpId;
+  showBlockingOverlay('Subiendo la foto...');
+  try {
+    const blob = await _achicarFoto(f);
+    if (await guardarFotoEmpleado(empId, blob)) {
+      showToast('&#10003; Foto guardada');
+      if (currentEmpId === empId) openPanel(empId);
+      renderTable();
+    }
+  } catch (e) { showToast(escapeHTML(e.message)); }
+  finally { hideBlockingOverlay(); }
+}
+
+async function _fotoFichaQuitar() {
+  if (!currentEmpId || !puedeEditar('empleados')) return;
+  if (!confirm('¿Quitar la foto de este empleado?')) return;
+  const empId = currentEmpId;
+  showBlockingOverlay('Quitando la foto...');
+  try {
+    if (await guardarFotoEmpleado(empId, null)) {
+      showToast('&#10003; Foto quitada');
+      if (currentEmpId === empId) openPanel(empId);
+      renderTable();
+    }
+  } finally { hideBlockingOverlay(); }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -5030,7 +5312,7 @@ function _empCard(e, badgeHtml, cardClass) {
   return '<div class="event-card ' + cardClass + '">'
     + '<div class="emp-avatar ' + g + '" style="width:36px;height:36px;font-size:12px;flex-shrink:0">' + escapeHTML(ini) + '</div>'
     + '<div style="flex:1;min-width:0"><div class="event-name">' + escapeHTML(e.nombre) + '</div>'
-    + '<div class="event-detail">' + escapeHTML(e.cargo||'Sin cargo') + ' &bull; ' + escapeHTML(e.cliente||'Sin proyecto') + '</div></div>'
+    + '<div class="event-detail">' + escapeHTML(e.cargo||'Sin cargo') + ' &bull; ' + escapeHTML(e.cliente||sinCampo('clientes')) + '</div></div>'
     + badgeHtml + '</div>';
 }
 
@@ -5275,7 +5557,7 @@ function buildEstadisticas() {
 
   // Gráfico 3: Proyectos con más bajas
   const cliRot={};
-  inactivos.forEach(e=>{const c=e.cliente||'Sin proyecto';cliRot[c]=(cliRot[c]||0)+1;});
+  inactivos.forEach(e=>{const c=e.cliente||sinCampo('clientes');cliRot[c]=(cliRot[c]||0)+1;});
   const topCli=Object.entries(cliRot).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const elC = document.getElementById('chartRotCliente');
   if (elC && topCli.length) _statCharts.clientes = new Chart(elC, {
@@ -5305,22 +5587,23 @@ function buildEstadisticas() {
 // Si no hay filtros activos → exporta todos.
 // Si hay filtros → exporta solo esos, con una nota en el nombre del archivo.
 function _construirWorkbookEmpleados(source, esFiltrado) {
+  const H = encabezadoCampo;
   const HEADERS = [
-    'PROYECTO *', 'NOMBRE COMPLETO *', 'CEDULA *', 'FECHA DE INGRESO *',
-    'FECHA DE RETIRO', 'MOTIVO DE RETIRO', 'ESTADO *', 'GENERO *',
-    'FECHA DE NACIMIENTO *', 'EDAD', 'NIVEL DE ESCOLARIDAD', 'DIRECCION',
-    'CELULAR', 'CARGO *', 'MUNICIPIO DE TRABAJO', 'DEPARTAMENTO',
-    'HORAS LABORALES', 'SALARIO', 'AUX. DE TRANSPORTE', 'HORAS EXTRAS', 'EPS', 'AFP', 'ARL',
-    'NIVEL DE RIESGO', 'CORREO', 'INCAPACITADO', 'NOTAS'
+    H('clientes') + ' *', 'NOMBRE COMPLETO *', 'CEDULA *', 'FECHA DE INGRESO *',
+    'FECHA DE RETIRO', H('motivosRetiro'), 'ESTADO *', 'GENERO *',
+    'FECHA DE NACIMIENTO *', 'EDAD', H('escolaridad'), 'DIRECCION',
+    'CELULAR', H('cargos') + ' *', H('municipios'), H('departamentos'),
+    'HORAS LABORALES', 'SALARIO', 'AUX. DE TRANSPORTE', H('eps'), H('afp'), H('arl'),
+    H('nivelesRiesgo'), 'CORREO', 'INCAPACITADO', H('tallasCamisa'), H('tallasPantalon'), H('tallasZapatos'), 'NOTAS'
   ];
   const FIELDS = [
     'cliente','nombre','cedula','ingreso','retiro','motivo','estado','genero',
     'nacimiento','edad','escolaridad','direccion','celular','cargo',
-    'municipio','departamento','horas','salario','aux_transporte','horas_extras','eps','afp','arl',
-    'riesgo','correo','incapacitado','notas'
+    'municipio','departamento','horas','salario','aux_transporte','eps','afp','arl',
+    'riesgo','correo','incapacitado','talla_camisa','talla_pantalon','talla_zapatos','notas'
   ];
 
-  const designRow = Array(27).fill('');
+  const designRow = Array(HEADERS.length).fill('');
   const dataRows  = source.map(e => FIELDS.map(f => {
     const v = e[f];
     return (v !== null && v !== undefined) ? String(v) : '';
@@ -5331,15 +5614,15 @@ function _construirWorkbookEmpleados(source, esFiltrado) {
   if (esFiltrado) {
     // Resaltar la fila de aviso (celda A1)
     if (!ws['A1']) ws['A1'] = {};
-    ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:26}}];
+    ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:HEADERS.length-1}}];
   }
 
   ws['!cols'] = [
     {wch:38},{wch:32},{wch:14},{wch:16},{wch:16},{wch:28},
     {wch:10},{wch:12},{wch:16},{wch:6}, {wch:20},{wch:32},
     {wch:14},{wch:34},{wch:18},{wch:18},{wch:14},{wch:12},
-    {wch:16},{wch:12},{wch:20},{wch:16},{wch:18},{wch:14},{wch:26},
-    {wch:12},{wch:36}
+    {wch:16},{wch:20},{wch:16},{wch:18},{wch:14},{wch:26},
+    {wch:12},{wch:14},{wch:14},{wch:14},{wch:36}
   ];
   ws['!freeze'] = {xSplit:0, ySplit:2};
 
@@ -5475,7 +5758,7 @@ function renderAlerts(){
           <div class="emp-avatar ${e.genero==='FEMENINO'?'f':'m'}" style="width:28px;height:28px;font-size:10px">${e.nombre?escapeHTML(getInitials(e.nombre)):'?'}</div>
           <div style="flex:1;min-width:0">
             <div class="alert-emp-name">${escapeHTML(e.nombre||'Sin nombre')}</div>
-            <div class="alert-emp-detail">${escapeHTML(e.cliente||'Sin proyecto')} &middot; Ingreso: ${escapeHTML(e.ingreso||'—')}</div>
+            <div class="alert-emp-detail">${escapeHTML(e.cliente||sinCampo('clientes'))} &middot; Ingreso: ${escapeHTML(e.ingreso||'—')}</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
             <select onchange="asignarCampoAlerta(${e.id},'cargo',this.value,this)"
@@ -5515,7 +5798,7 @@ function renderAlerts(){
           </div>
         </div>`).join('')
       + (sinCliente.length>10?`<div style="padding:10px 18px;font-size:12px;color:var(--text3)">y ${sinCliente.length-10} m\xe1s...</div>`:'')
-    : `<div style="padding:14px 18px;font-size:12px;color:var(--green)">&#10003; Todos los activos tienen proyecto asignado</div>`;
+    : `<div style="padding:14px 18px;font-size:12px;color:var(--green)">&#10003; ${escapeHTML(frase('todosConCliente'))}</div>`;
 
   // ── Cargos inconsistentes (calculado din\xe1micamente) ───────────────────
   // Usa groupSimilarNames/_esVarianteReal — la MISMA lógica estricta que "Nombres similares",
@@ -5607,7 +5890,7 @@ async function asignarCampoAlerta(empId, campo, valor, selectEl) {
   }
 
   await logAudit('update', 'empleados', String(empId), 'Asign\xf3 ' + campo + ': ' + valor + ' desde alerta');
-  showToast('&#10003; ' + (campo==='cargo'?'Cargo':'Proyecto') + ' asignado: ' + escapeHTML(valor));
+  showToast('&#10003; ' + escapeHTML(nombreCampo(campo==='cargo'?'cargos':'clientes')) + ': ' + escapeHTML(valor));
 }
 // ───────────────────────────────────────────────────────────────────────
 
@@ -5672,6 +5955,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!canAccess('dashboard')) _irASeccionInicial();   // sin Dashboard: a la primera sección que puede ver
     _resetInactivity();
     await loadCatalogsFromDB();
+    await cargarNombresCatalogos();
     await loadNovedadesFromDB();
     await loadCorreccionesIgnoradas();
     refreshCertSolBadge();
@@ -6020,9 +6304,12 @@ async function commitImport() {
       municipio:    _norm(row.municipio, 'municipios'), departamento: _norm(row.departamento, 'departamentos'),
       horas:        row.horas       ||'',       salario: row.salario  ||'',
       aux_transporte: row.aux_transporte||'',
-      horas_extras: row.horas_extras||'',       eps:     _norm(row.eps, 'eps'),
+      eps:          _norm(row.eps, 'eps'),
       afp:          _norm(row.afp, 'afp'),      arl:     _norm(row.arl, 'arl'),
       riesgo:       row.riesgo      ||'',       correo:  row.correo   ||'',
+      talla_camisa:   _snapToCatalog((row.talla_camisa||'').toString().trim(), 'tallasCamisa'),
+      talla_pantalon: _snapToCatalog((row.talla_pantalon||'').toString().trim(), 'tallasPantalon'),
+      talla_zapatos:  _snapToCatalog((row.talla_zapatos||'').toString().trim(), 'tallasZapatos'),
       incapacitado: row.incapacitado||'',       notas:   notasExtra,
       tiene_errores: row.status === 'error',
     };
@@ -6392,6 +6679,10 @@ const CATALOGS = {
   tiposAdjunto:[
     'Cédula', 'Contrato', 'Hoja de vida', 'Examen médico', 'Paz y salvo', 'Otro'
   ],
+  // Tallas para la dotación: arrancan vacías, cada empresa pone las suyas
+  tallasCamisa:[],
+  tallasPantalon:[],
+  tallasZapatos:[],
 };
 const CATALOG_TITLES = {
   clientes:'Proyectos', cargos:'Cargos', eps:'EPS',
@@ -6399,19 +6690,168 @@ const CATALOG_TITLES = {
   departamentos:'Departamentos', motivosRetiro:'Motivos de retiro',
   escolaridad:'Nivel de Escolaridad', tiposDocumento:'Tipos de documento',
   nivelesRiesgo:'Niveles de riesgo', novedades_tipos:'Tipos de Novedad',
-  fondosCesantias:'Fondos de cesantías', tiposAdjunto:'Adjuntos'
+  fondosCesantias:'Fondos de cesantías', tiposAdjunto:'Adjuntos',
+  tallasCamisa:'Tallas de camisa', tallasPantalon:'Tallas de pantalón', tallasZapatos:'Tallas de zapatos'
 };
+// Nombre del campo que llena cada catálogo, en singular, como sale en el formulario y la ficha
+const CATALOG_CAMPOS = {
+  clientes:'Proyecto', cargos:'Cargo', eps:'EPS', afp:'AFP / Pensión', arl:'ARL',
+  municipios:'Municipio de trabajo', departamentos:'Departamento', motivosRetiro:'Motivo de retiro',
+  escolaridad:'Nivel de escolaridad', tiposDocumento:'Tipo de documento', nivelesRiesgo:'Nivel de riesgo',
+  novedades_tipos:'Tipo de novedad', fondosCesantias:'Fondo de cesantías', tiposAdjunto:'Tipo de adjunto',
+  tallasCamisa:'Talla de camisa', tallasPantalon:'Talla de pantalón', tallasZapatos:'Talla de zapatos'
+};
+// Los nombres de fábrica, para «Volver al nombre original»
+const CATALOG_TITLES_FABRICA = Object.assign({}, CATALOG_TITLES);
+const CATALOG_CAMPOS_FABRICA = Object.assign({}, CATALOG_CAMPOS);
 const CATALOG_USAGE = {
   clientes:{max:500},cargos:{max:2000},eps:{max:500},afp:{max:500},
   arl:{max:500},municipios:{max:7991},departamentos:{max:7991},
   motivosRetiro:{max:7991},escolaridad:{max:7991},tiposDocumento:{max:7991},nivelesRiesgo:{max:7991},
-  novedades_tipos:{max:50}, fondosCesantias:{max:50}
+  novedades_tipos:{max:50}, fondosCesantias:{max:50},
+  tallasCamisa:{max:100}, tallasPantalon:{max:100}, tallasZapatos:{max:100}
 };
+
+// ── Nombres de los catálogos ───────────────────────────────────────────────
+// El administrador de RH puede cambiar el nombre de un catálogo y el de su campo
+// (p. ej. «Proyectos» → «Centros de costo»). Quedan en la tabla catalogo_nombres;
+// los textos fijos de la página se marcan con data-catalogo / data-campo / data-campo-min.
+function nombreCatalogo(key) { return CATALOG_TITLES[key] || key; }
+function nombreCampo(key)    { return CATALOG_CAMPOS[key] || nombreCatalogo(key); }
+// Para usarlo dentro de una frase («Sin proyecto»): en minúscula, salvo las siglas (EPS, ARL)
+function nombreCampoMin(key) {
+  const n = nombreCampo(key);
+  return /^[A-ZÁÉÍÓÚÑ]{2,}(\b|$)/.test(n) ? n : n.charAt(0).toLowerCase() + n.slice(1);
+}
+const sinCampo = key => 'Sin ' + nombreCampoMin(key);
+const _esFabrica = key => nombreCampo(key) === CATALOG_CAMPOS_FABRICA[key] && nombreCatalogo(key) === CATALOG_TITLES_FABRICA[key];
+
+// Frases con artículo («el proyecto», «la obra»): con el nombre de fábrica quedan como siempre; con
+// un nombre nuevo se dicen de una forma que sirva para cualquier nombre
+const FRASES_CAMPO = {
+  todosClientes:    () => _esFabrica('clientes') ? 'Todos los proyectos' : nombreCatalogo('clientes') + ': todos',
+  todosCargos:      () => _esFabrica('cargos') ? 'Todos los cargos' : nombreCatalogo('cargos') + ': todos',
+  trasladar:        () => _esFabrica('clientes') ? 'Trasladar a otro proyecto' : 'Cambiar de ' + nombreCampoMin('clientes'),
+  trasladarTitulo:  () => _esFabrica('clientes') ? 'Trasladar empleados a otro proyecto' : 'Cambiar de ' + nombreCampoMin('clientes') + ' a los empleados',
+  trasladarResumen: () => _esFabrica('clientes') ? 'pasarán al nuevo proyecto manteniendo todo su historial activo.'
+                                                 : 'cambiarán de ' + nombreCampoMin('clientes') + ' manteniendo todo su historial activo.',
+  nuevoCliente:     () => _esFabrica('clientes') ? 'Nuevo proyecto' : nombreCampo('clientes') + ' de destino',
+  buscarCliente:    () => _esFabrica('clientes') ? 'Escribe para buscar proyecto...' : 'Escribe para buscar...',
+  editarCargoCliente: () => 'Editar ' + nombreCampoMin('cargos') + ' / ' + nombreCampoMin('clientes'),
+  todosConCliente:  () => _esFabrica('clientes') ? 'Todos los activos tienen proyecto asignado' : 'Ningún activo está ' + sinCampo('clientes').toLowerCase(),
+};
+const frase = clave => FRASES_CAMPO[clave] ? FRASES_CAMPO[clave]() : '';
+
+// Encabezado de un campo de catálogo en el Excel: el de siempre, o el nombre nuevo si se lo cambiaron
+const _ENCABEZADO_FABRICA = {
+  clientes:'PROYECTO', cargos:'CARGO', eps:'EPS', afp:'AFP', arl:'ARL',
+  municipios:'MUNICIPIO DE TRABAJO', departamentos:'DEPARTAMENTO', motivosRetiro:'MOTIVO DE RETIRO',
+  escolaridad:'NIVEL DE ESCOLARIDAD', nivelesRiesgo:'NIVEL DE RIESGO',
+  tallasCamisa:'TALLA CAMISA', tallasPantalon:'TALLA PANTALON', tallasZapatos:'TALLA ZAPATOS'
+};
+function encabezadoCampo(key) {
+  return nombreCampo(key) === CATALOG_CAMPOS_FABRICA[key] && _ENCABEZADO_FABRICA[key]
+    ? _ENCABEZADO_FABRICA[key] : nombreCampo(key).toUpperCase();
+}
+
+function aplicarNombresCatalogos(raiz) {
+  const r = raiz || document;
+  r.querySelectorAll('[data-catalogo]').forEach(el => { el.textContent = nombreCatalogo(el.dataset.catalogo); });
+  r.querySelectorAll('[data-campo]').forEach(el => { el.textContent = (el.dataset.prefijo || '') + nombreCampo(el.dataset.campo) + (el.dataset.sufijo || ''); });
+  r.querySelectorAll('[data-campo-min]').forEach(el => { el.textContent = (el.dataset.prefijo || '') + nombreCampoMin(el.dataset.campoMin) + (el.dataset.sufijo || ''); });
+  r.querySelectorAll('[data-catalogo-pre]').forEach(el => { el.textContent = nombreCatalogo(el.dataset.catalogoPre) + (el.dataset.sufijo || ''); });
+  r.querySelectorAll('[data-frase]').forEach(el => { el.textContent = frase(el.dataset.frase); });
+  r.querySelectorAll('[data-frase-placeholder]').forEach(el => { el.placeholder = frase(el.dataset.frasePlaceholder); });
+  // Buscadores que nombran los campos en su texto de ayuda
+  r.querySelectorAll('[data-placeholder-busqueda]').forEach(el => {
+    el.placeholder = 'Buscar por nombre, cédula, ' + nombreCampoMin('clientes') + ', ' + nombreCampoMin('cargos') + '...';
+  });
+  const titulo = document.getElementById('catalogPanelTitle');
+  if (titulo && activeCatalog) titulo.textContent = nombreCatalogo(activeCatalog);
+  // El botón de cambiar nombre: solo para el administrador (se revisa al entrar, ya con su perfil)
+  const btnRenombrar = document.getElementById('btn-renombrar-catalogo');
+  if (btnRenombrar) btnRenombrar.style.display = isAdmin() ? '' : 'none';
+}
+
+async function cargarNombresCatalogos() {
+  try {
+    const { data, error } = await sb.from('catalogo_nombres').select('clave,catalogo,campo');
+    if (!error && Array.isArray(data)) data.forEach(f => {
+      if (!(f.clave in CATALOG_TITLES_FABRICA)) return;
+      if (f.catalogo) CATALOG_TITLES[f.clave] = f.catalogo;
+      if (f.campo) CATALOG_CAMPOS[f.clave] = f.campo;
+    });
+  } catch (e) { /* sin la tabla todavía: se quedan los nombres de fábrica */ }
+  aplicarNombresCatalogos();
+}
+
+function abrirRenombrarCatalogo() {
+  if (!isAdmin()) return;
+  const key = activeCatalog;
+  document.getElementById('renombrar-catalogo').value = nombreCatalogo(key);
+  document.getElementById('renombrar-campo').value = nombreCampo(key);
+  const cambiado = nombreCatalogo(key) !== CATALOG_TITLES_FABRICA[key] || nombreCampo(key) !== CATALOG_CAMPOS_FABRICA[key];
+  document.getElementById('renombrar-original').textContent = cambiado
+    ? 'Nombre original: ' + CATALOG_TITLES_FABRICA[key] + ' / ' + CATALOG_CAMPOS_FABRICA[key] : '';
+  document.getElementById('renombrar-restaurar').style.display = cambiado ? '' : 'none';
+  document.getElementById('modal-renombrar-catalogo').style.display = 'flex';
+  setTimeout(() => document.getElementById('renombrar-catalogo').focus(), 50);
+}
+function cerrarRenombrarCatalogo() {
+  document.getElementById('modal-renombrar-catalogo').style.display = 'none';
+}
+
+// Después de un cambio de nombre: textos fijos, selects y la sección que esté abierta
+function _refrescarNombresEnPantalla() {
+  aplicarNombresCatalogos();
+  try { initCatalogs(); } catch (e) {}
+  try { initFilters(); initMasEditFilters(); } catch (e) {}
+  try { renderTable(); } catch (e) {}
+  try { refreshDashboard(); } catch (e) {}
+}
+
+async function _guardarNombresCatalogo(key, catalogo, campo) {
+  const esFabrica = catalogo === CATALOG_TITLES_FABRICA[key] && campo === CATALOG_CAMPOS_FABRICA[key];
+  const { error } = esFabrica
+    ? await sb.from('catalogo_nombres').delete().eq('clave', key)
+    : await sb.from('catalogo_nombres').upsert({ clave: key, catalogo, campo, updated_at: new Date().toISOString() }, { onConflict: 'clave' });
+  if (error) { showToast('No se pudo guardar el nombre: ' + escapeHTML(error.message)); return false; }
+  const antes = nombreCatalogo(key) + ' / ' + nombreCampo(key);
+  CATALOG_TITLES[key] = catalogo;
+  CATALOG_CAMPOS[key] = campo;
+  try {
+    await logAudit('update', 'catalogos', key, 'Cambió el nombre del catálogo «' + antes + '» a «' + catalogo + ' / ' + campo + '»');
+  } catch (e) {}
+  _refrescarNombresEnPantalla();
+  return true;
+}
+
+async function guardarNombreCatalogo() {
+  if (!isAdmin()) return;
+  const key = activeCatalog;
+  const catalogo = document.getElementById('renombrar-catalogo').value.replace(/\s+/g, ' ').trim();
+  const campo = document.getElementById('renombrar-campo').value.replace(/\s+/g, ' ').trim();
+  if (!catalogo || !campo) { showToast('Escribe el nombre del catálogo y el del campo'); return; }
+  if (await _guardarNombresCatalogo(key, catalogo, campo)) {
+    cerrarRenombrarCatalogo();
+    showToast('&#10003; El catálogo ahora se llama «' + escapeHTML(catalogo) + '»');
+  }
+}
+
+async function restaurarNombreCatalogo() {
+  if (!isAdmin()) return;
+  const key = activeCatalog;
+  if (await _guardarNombresCatalogo(key, CATALOG_TITLES_FABRICA[key], CATALOG_CAMPOS_FABRICA[key])) {
+    cerrarRenombrarCatalogo();
+    showToast('&#10003; El catálogo volvió a su nombre original');
+  }
+}
 let activeCatalog = 'clientes';
 
 function initCatalogs(){
   // Populate form selects from catalogs
-  const selMap = {f_cliente:'clientes',f_cargo:'cargos',f_eps:'eps',f_afp:'afp',f_arl:'arl',f_municipio:'municipios'};
+  const selMap = {f_cliente:'clientes',f_cargo:'cargos',f_eps:'eps',f_afp:'afp',f_arl:'arl',f_municipio:'municipios',
+                  f_talla_camisa:'tallasCamisa',f_talla_pantalon:'tallasPantalon',f_talla_zapatos:'tallasZapatos'};
   Object.entries(selMap).forEach(([elId, catKey])=>{
     const el = document.getElementById(elId);
     if(!el) return;
@@ -6447,7 +6887,9 @@ async function loadCatalog(key, el){
   _catPage = 1;  // reiniciar paginación al cambiar de catálogo
   document.querySelectorAll('.catalog-list-item').forEach(i=>i.classList.remove('active'));
   if(el) el.classList.add('active');
-  document.getElementById('catalogPanelTitle').textContent = CATALOG_TITLES[key]||key;
+  document.getElementById('catalogPanelTitle').textContent = nombreCatalogo(key);
+  const btnRenombrar = document.getElementById('btn-renombrar-catalogo');
+  if (btnRenombrar) btnRenombrar.style.display = isAdmin() ? '' : 'none';
   document.getElementById('catalogSearch').value = '';
   if (key === 'tiposAdjunto') await _cargarUsoAdjuntos();
   renderCatalogItems(key, '', 1);
@@ -6483,7 +6925,8 @@ function refreshCatalogIfVisible(){
 const CATALOG_FIELD_MAP = {
   clientes:'cliente', cargos:'cargo', eps:'eps', afp:'afp', arl:'arl',
   municipios:'municipio', departamentos:'departamento', motivosRetiro:'motivo',
-  escolaridad:'escolaridad', nivelesRiesgo:'riesgo'
+  escolaridad:'escolaridad', nivelesRiesgo:'riesgo',
+  tallasCamisa:'talla_camisa', tallasPantalon:'talla_pantalon', tallasZapatos:'talla_zapatos'
 };
 
 function getCatalogUsage(key) {
@@ -6991,7 +7434,7 @@ function buildNovedadesPorVencer() {
     <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Incapacidades que vencen en los próximos 5 días.</div>
     <div class="table-wrap">
       <table class="table">
-        <thead><tr><th>Empleado</th><th>Proyecto</th><th>Diagnóstico</th><th>Fin</th><th>Vence en</th><th></th></tr></thead>
+        <thead><tr><th>Empleado</th><th>${escapeHTML(nombreCampo('clientes'))}</th><th>Diagnóstico</th><th>Fin</th><th>Vence en</th><th></th></tr></thead>
         <tbody>${items.map(filaHTML).join('')}</tbody>
       </table>
     </div>`;
@@ -7171,7 +7614,7 @@ function novSelectEmployee(id) {
   av.textContent = getInitials(emp.nombre);
   av.className = 'emp-avatar ' + (emp.genero==='FEMENINO'?'f':'m');
   document.getElementById('nov-emp-name').textContent = emp.nombre;
-  document.getElementById('nov-emp-meta').textContent = (emp.cargo||'Sin cargo') + ' · ' + (emp.cliente||'Sin proyecto') + ' · CC ' + emp.cedula;
+  document.getElementById('nov-emp-meta').textContent = (emp.cargo||sinCampo('cargos')) + ' · ' + (emp.cliente||sinCampo('clientes')) + ' · CC ' + emp.cedula;
   const badge = document.getElementById('nov-emp-badge');
   badge.textContent = emp.estado;
   badge.className = 'badge ' + (emp.estado==='ACTIVO'?'badge-activo':'badge-inactivo');
@@ -7366,7 +7809,7 @@ async function buildNovedadesHistorial() {
         ${tipos.map(t => '<option value="'+escapeHTML(t)+'">'+escapeHTML(t)+'</option>').join('')}
       </select>
       <select class="form-select" id="novf-cliente" style="width:190px" onchange="novFiltrarHistorial()">
-        <option value="">Todos los proyectos</option>
+        <option value="">${escapeHTML(frase('todosClientes'))}</option>
         ${clientes.map(c => '<option value="'+escapeHTML(c)+'">'+escapeHTML(c)+'</option>').join('')}
       </select>
       <input type="date" class="form-input" id="novf-desde" style="width:140px" onchange="novFiltrarHistorial()" title="Desde">
@@ -7497,7 +7940,7 @@ function _enoOnTipoChange() {
 function _abrirModalEditarNovedad(nov) {
   _novEditNovedadId = nov.id;
   const tipos = CATALOGS.novedades_tipos || [];
-  document.getElementById('eno-emp-info').textContent = nov.empleado_nombre + ' · CC ' + nov.empleado_cedula + ' · ' + (nov.empleado_cliente||'Sin proyecto');
+  document.getElementById('eno-emp-info').textContent = nov.empleado_nombre + ' · CC ' + nov.empleado_cedula + ' · ' + (nov.empleado_cliente||sinCampo('clientes'));
   const sel = document.getElementById('eno-tipo');
   sel.innerHTML = tipos.map(t => '<option value="'+escapeHTML(t)+'"' + (t===nov.tipo?' selected':'') + '>' + escapeHTML(t) + '</option>').join('');
   document.getElementById('eno-descripcion').value = nov.descripcion || '';
@@ -7655,7 +8098,7 @@ function buildNovedadesReportes() {
       </div>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px">Proyectos con más novedades</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">${escapeHTML(nombreCatalogo('clientes'))} con más novedades</div>
       <div style="height:220px"><canvas id="novChartCliente"></canvas></div>
     </div>
   `;
@@ -7671,7 +8114,7 @@ function buildNovedadesReportes() {
   NOVEDADES.forEach(n => { tipoCount[n.tipo] = (tipoCount[n.tipo]||0)+1; });
   const topTipo = Object.entries(tipoCount).sort((a,b)=>b[1]-a[1])[0];
   const cliCount = {};
-  NOVEDADES.forEach(n => { const c = n.empleado_cliente||'Sin proyecto'; cliCount[c] = (cliCount[c]||0)+1; });
+  NOVEDADES.forEach(n => { const c = n.empleado_cliente||sinCampo('clientes'); cliCount[c] = (cliCount[c]||0)+1; });
   const promDias = (NOVEDADES.reduce((s,n)=>s+(n.dias||0),0) / NOVEDADES.length).toFixed(1);
 
   const kpiEl = document.getElementById('nov-rep-kpis');
@@ -8642,6 +9085,21 @@ async function descargarRespaldoCompleto() {
       }, (p, t) => showToast(`Adjuntos de novedades: ${p}/${t}...`));
     }
 
+    // 5. Fotos de los empleados (una por archivo: un reingreso comparte la foto del contrato anterior)
+    const conFoto = [];
+    const fotosVistas = new Set();
+    EMPLEADOS.forEach(e => { if (e.foto_path && !fotosVistas.has(e.foto_path)) { fotosVistas.add(e.foto_path); conFoto.push(e); } });
+    let okFotos = 0, failFotos = 0;
+    if (conFoto.length) {
+      showToast(`Descargando ${conFoto.length} fotos de empleados...`);
+      await _procesarEnLotes(conFoto, 6, async (e) => {
+        const { data: blob, error } = await sb.storage.from(CARPETA_FOTOS).download(e.foto_path);
+        if (error || !blob) { failFotos++; return; }
+        zip.file(`fotos_empleados/${_sanitizarNombreArchivo(`${e.cedula || 'sin_cedula'}_${e.nombre || 'sin_nombre'}`)}.jpg`, blob);
+        okFotos++;
+      }, (p, t) => showToast(`Fotos de empleados: ${p}/${t}...`));
+    }
+
     showToast('Comprimiendo archivo ZIP, un momento...');
     const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
 
@@ -8655,9 +9113,9 @@ async function descargarRespaldoCompleto() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    const fallos = failEmp + failNov;
+    const fallos = failEmp + failNov + failFotos;
     await logAudit('export', 'respaldo', null,
-      `Respaldo completo generado: ${EMPLEADOS.length} empleados, ${NOVEDADES.length} novedades, ${okEmp} adjuntos de empleados, ${okNov} adjuntos de novedades` + (fallos ? ` (${fallos} adjuntos fallaron)` : ''));
+      `Respaldo completo generado: ${EMPLEADOS.length} empleados, ${NOVEDADES.length} novedades, ${okEmp} adjuntos de empleados, ${okNov} adjuntos de novedades, ${okFotos} fotos` + (fallos ? ` (${fallos} archivos fallaron)` : ''));
 
     showToast(`✓ Respaldo completo descargado → ${fname}` + (fallos ? ` — ${fallos} adjuntos no se pudieron incluir` : ''));
   } catch (err) {
@@ -8723,7 +9181,7 @@ function _hvBuildBodyHTML(emp) {
     + '<div style="font-weight:700;font-size:12.5px;margin-bottom:6px;color:#20449a">2. EXPERIENCIA LABORAL EN ' + escapeHTML(EMPRESA.nombre.toUpperCase()) + '</div>'
     + '<table style="width:100%;border-collapse:collapse;margin-bottom:18px">'
     +   '<thead><tr>'
-    +     '<td '+tdL+'>Proyecto</td><td '+tdL+'>Cargo</td><td '+tdL+'>Período</td><td '+tdL+'>Estado / Motivo de retiro</td>'
+    +     '<td '+tdL+'>'+escapeHTML(nombreCampo('clientes'))+'</td><td '+tdL+'>Cargo</td><td '+tdL+'>Período</td><td '+tdL+'>Estado / Motivo de retiro</td>'
     +   '</tr></thead>'
     +   '<tbody>'+filasExperiencia+'</tbody>'
     + '</table>'
@@ -9258,7 +9716,7 @@ function _clientesPermitidos(lista) {
 }
 function _textoMisContratos() { return _currentUser.contratosInfo.map(c => c.nombre).join(', '); }
 function _avisoClienteNoPermitido(nombre) {
-  showToast('Solo puedes usar tus contratos: ' + _textoMisContratos() + '. «' + (nombre || 'Sin proyecto') + '» no es uno de ellos.');
+  showToast('Solo puedes usar tus contratos: ' + _textoMisContratos() + '. «' + (nombre || sinCampo('clientes')) + '» no es uno de ellos.');
 }
 // Antes de crear (o reingresar) un empleado ACTIVO: ¿esa cédula está ACTIVA en un contrato que la
 // persona no ve? La base solo responde sí o no. Devuelve true si hay que detenerse (y ya avisó).
@@ -9747,6 +10205,7 @@ async function doLogin() {
   await logAudit('login', 'sesion', data.user.id, 'Inicio de sesion');
   btn.textContent = 'Cargando datos...';
   await loadCatalogsFromDB();
+  await cargarNombresCatalogos();
   await loadNovedadesFromDB();
   await loadCorreccionesIgnoradas();
   refreshCertSolBadge();
@@ -9986,11 +10445,17 @@ const HEADER_MAP = {
   'DEPARTAMENTO (GEO\xC1FICO)':'departamento',
   'DEPARTAMENTO (GEOGR\xC1FICO)':'departamento',
   'DEPARTAMENTO':'departamento',
-  'HORAS LABORALES':'horas','SALARIO':'salario','AUX. DE TRANSPORTE':'aux_transporte','HORAS EXTRAS':'horas_extras',
+  // Horas extras ya no se usa: si un Excel viejo trae la columna, se ignora
+  'HORAS LABORALES':'horas','SALARIO':'salario','AUX. DE TRANSPORTE':'aux_transporte','HORAS EXTRAS':'_ignorar',
   'EPS':'eps','AFP':'afp','ARL':'arl',
   'NIVEL DE RIESGO':'riesgo','CORREO':'correo',
   'INCAPACITADO':'incapacitado','NOTAS':'notas',
   'ICONO GENERO':'_iconoGenero',
+  // Tallas para la dotación
+  'TALLA CAMISA':'talla_camisa','TALLA DE CAMISA':'talla_camisa','CAMISA':'talla_camisa',
+  'TALLA PANTALON':'talla_pantalon','TALLA PANTALÓN':'talla_pantalon','TALLA DE PANTALON':'talla_pantalon',
+  'TALLA DE PANTALÓN':'talla_pantalon','PANTALON':'talla_pantalon','PANTALÓN':'talla_pantalon',
+  'TALLA ZAPATOS':'talla_zapatos','TALLA DE ZAPATOS':'talla_zapatos','TALLA ZAPATO':'talla_zapatos','ZAPATOS':'talla_zapatos',
   // Plantilla nueva (formato igual al Excel original, con * en obligatorios)
   'CLIENTE *':'cliente','PROYECTO *':'cliente',
   'NOMBRE COMPLETO *':'nombre',
@@ -10008,7 +10473,6 @@ const HEADER_MAP = {
   'DEPARTAMENTO (GEOGRAFICO)':'departamento',
   'DEPARTAMENTO':'departamento',
   'NIVEL DE ESCOLARIDAD':'escolaridad',
-  'HORAS EXTRAS':'horas_extras',
   // Plantilla anterior (por compatibilidad con archivos ya generados)
   'TIPO_DOCUMENTO *':'tipoDoc','TIPO_DOCUMENTO':'tipoDoc',
   'NUMERO_DOCUMENTO *':'cedula','NUMERO_DOCUMENTO':'cedula',
@@ -10031,6 +10495,11 @@ function normalizeHeader(raw) {
   if(HEADER_MAP[c]) return HEADER_MAP[c];
   const u=c.toUpperCase();
   if(HEADER_MAP[u]) return HEADER_MAP[u];
+  // El nombre actual de un campo de catálogo (si se lo cambiaron en Catálogos, p. ej. «CENTRO DE COSTO *»)
+  const sinAsterisco = removeAccents(u.replace(/\*/g,'').trim());
+  for (const [key, field] of Object.entries(CATALOG_FIELD_MAP)) {
+    if (removeAccents(nombreCampo(key).toUpperCase()) === sinAsterisco) return field;
+  }
   // Último recurso: clave sanitizada
   return u.replace(/[^A-Z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'').toLowerCase();
 }
@@ -10042,7 +10511,7 @@ const REQUIRED_FIELDS = [
   {key:'cedula',  label:'C\xe9dula / N\xba documento'},
   {key:'nombre',  label:'Nombre completo'},
   {key:'estado',  label:'Estado'},
-  {key:'cliente', label:'Proyecto'},
+  {key:'cliente', get label(){ return nombreCampo('clientes'); }},
   {key:'ingreso', label:'Fecha de ingreso'},
   {key:'genero',  label:'G\xe9nero'},
 ];
@@ -10534,7 +11003,7 @@ function renderPreview() {
   }
   // Columnas a mostrar
   const SHOW = ['cedula','nombre','cliente','cargo','ingreso','genero','estado'];
-  const LABELS = {cedula:'C\xe9dula',nombre:'Nombre completo',cliente:'Proyecto',cargo:'Cargo',ingreso:'Ingreso',genero:'G\xe9nero',estado:'Estado'};
+  const LABELS = {cedula:'C\xe9dula',nombre:'Nombre completo',get cliente(){ return nombreCampo('clientes'); },cargo:'Cargo',ingreso:'Ingreso',genero:'G\xe9nero',estado:'Estado'};
   const avail = SHOW.filter(c=>rows.some(r=>r[c]));
 
   document.getElementById('previewHeaders').innerHTML =
@@ -10650,7 +11119,8 @@ function downloadTemplate(){
   XLSX.utils.sheet_add_aoa(ws, [[
     'Camiones', 'Nombre Apellido Apellido', '1000000000', '01/10/2026', '', '', 'ACTIVO', 'MASCULINO',
     '15/05/1990', '', 'Bachiller', 'Calle 1 # 2-3', '3000000000', 'Conductor de tractomula', 'Monteria', 'Córdoba',
-    '08 HORAS', '$2.100.000', '', '', 'Nueva eps', 'Porvenir', 'Positiva compañía de seguros', '4', '', 'No', 'Fila de ejemplo: bórrela antes de importar'
+    '08 HORAS', '$2.100.000', '', 'Nueva eps', 'Porvenir', 'Positiva compañía de seguros', '4', '', 'No', '', '', '',
+    'Fila de ejemplo: bórrela antes de importar'
   ]], { origin: 'A3' });
   wb.SheetNames = ['Datos'];
   wb.Sheets = { Datos: ws };
@@ -10661,9 +11131,12 @@ function downloadTemplate(){
     ['2. Las columnas con * son obligatorias.'],
     ['3. Fechas en formato DD/MM/AAAA (por ejemplo 01/10/2026).'],
     ['4. ESTADO: ACTIVO o INACTIVO. GÉNERO: FEMENINO o MASCULINO.'],
-    ['5. PROYECTO, CARGO, EPS, AFP, ARL, MUNICIPIO y ESCOLARIDAD deben existir en Catálogos (mayúsculas y tildes no importan).'],
+    ['5. ' + ['clientes','cargos','eps','afp','arl','municipios'].map(encabezadoCampo).join(', ') + ' y ' + encabezadoCampo('escolaridad')
+      + ' deben existir en Catálogos (mayúsculas y tildes no importan).'],
     ['6. HORAS LABORALES: 04 HORAS, 08 HORAS, 12 HORAS o TURNOS.'],
-    ['7. Antes de guardar, la importación muestra un resumen con errores y advertencias para revisar.']
+    ['7. ' + ['tallasCamisa','tallasPantalon','tallasZapatos'].map(encabezadoCampo).join(', ')
+      + ': opcionales; si se llenan, que sean tallas que existan en Catálogos.'],
+    ['8. Antes de guardar, la importación muestra un resumen con errores y advertencias para revisar.']
   ]);
   instrucciones['!cols'] = [{ wch: 110 }];
   XLSX.utils.book_append_sheet(wb, instrucciones, 'Instrucciones');
@@ -10705,8 +11178,8 @@ const _masEditSelected = new Set();
 // Los 9 campos de catálogo disponibles como filtro en Edición Masiva (reutiliza
 // _SIM_TYPE_CONFIG de "Nombres similares" para el campo/catálogo/etiqueta de cada uno).
 const _MASEDIT_FILTRO_CAMPOS = [
-  { type:'CLIENTE',      selId:'masEditFilterCliente',      placeholder:'Todos los proyectos' },
-  { type:'CARGO',        selId:'masEditFilterCargo',        placeholder:'Todos los cargos' },
+  { type:'CLIENTE',      selId:'masEditFilterCliente',      get placeholder(){ return frase('todosClientes'); } },
+  { type:'CARGO',        selId:'masEditFilterCargo',        get placeholder(){ return frase('todosCargos'); } },
   { type:'EPS',          selId:'masEditFilterEps',          placeholder:'Todas las EPS' },
   { type:'AFP',          selId:'masEditFilterAfp',          placeholder:'Todas las AFP' },
   { type:'ARL',          selId:'masEditFilterArl',          placeholder:'Todas las ARL' },
@@ -10979,7 +11452,7 @@ function limpiarMasEditSeleccion(){
 
 // Campos editables en bloque desde esta pestaña + su catálogo correspondiente
 const _MASEDIT_CAMPOS = [
-  { campo:'cliente',      selId:'masedit-cliente',      catKey:'clientes',      label:'Proyecto' },
+  { campo:'cliente',      selId:'masedit-cliente',      catKey:'clientes',      get label(){ return nombreCampo('clientes'); } },
   { campo:'cargo',        selId:'masedit-cargo',        catKey:'cargos',        label:'Cargo' },
   { campo:'eps',          selId:'masedit-eps',          catKey:'eps',           label:'EPS' },
   { campo:'afp',          selId:'masedit-afp',          catKey:'afp',           label:'AFP' },
@@ -11270,7 +11743,7 @@ async function resolverDupExacto(cedula, accion) {
   } else if (accion === 'eliminar') {
     if (!confirm('ELIMINAR permanentemente el registro m\xe1s antiguo de ' + (antiguo.nombre||cedula) + '?\n\nEsto NO se puede deshacer.')) return;
     if (typeof cmAntesDeBorrarEmpleados === 'function'
-        && !(await cmAntesDeBorrarEmpleados([antiguo.id], 'El registro m\xe1s antiguo de ' + (antiguo.nombre || cedula) + ' (' + (antiguo.cliente || 'sin proyecto') + ')'))) return;
+        && !(await cmAntesDeBorrarEmpleados([antiguo.id], 'El registro m\xe1s antiguo de ' + (antiguo.nombre || cedula) + ' (' + (antiguo.cliente || sinCampo('clientes').toLowerCase()) + ')'))) return;
     showBlockingOverlay('Eliminando...');
     try {
       const { error } = await sb.from('empleados').delete().eq('id', antiguo.id);
@@ -11642,7 +12115,7 @@ function buildDuplicados() {
     const ignoradosExact = exactGroupsAll.length - exactGroups.length;
     const infoExact = ignoradosExact ? '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">'+exactGroups.length+' grupos detectados &mdash; '+ignoradosExact+' marcado'+(ignoradosExact!==1?'s':'')+' como historial v\xe1lido en esta sesi\xf3n</div>' : '';
     elExact.innerHTML=infoExact+'<div style="background:var(--red-light);border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--red);font-weight:600">&#9888; '+exactGroups.length+' grupo'+( exactGroups.length!==1?'s':'')+' con m\xe1s de un registro ACTIVO para la misma c\xe9dula.</div>'
-      +exactGroups.map(([ced,records])=>`<div class="dup-group-card"><div class="dup-group-header"><div class="dup-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>CC ${escapeHTML(ced)} &mdash; ${escapeHTML(records[0].nombre||'Sin nombre')}</div><span class="dup-score high">${records.length} registros ACTIVOS</span></div><div class="dup-comparison">${records.slice(0,2).map((r,i)=>'<div class="dup-col"><div class="dup-col-title">Registro '+(i+1)+'</div><div class="dup-field-row"><span class="dup-field-label">Proyecto</span><span class="dup-field-val diff">'+escapeHTML(r.cliente||'&mdash;')+'</span></div><div class="dup-field-row"><span class="dup-field-label">Cargo</span><span class="dup-field-val">'+escapeHTML(r.cargo||'&mdash;')+'</span></div><div class="dup-field-row"><span class="dup-field-label">Ingreso</span><span class="dup-field-val">'+escapeHTML(r.ingreso||'&mdash;')+'</span></div></div>').join('')}</div><div class="dup-actions"><span style="font-size:11px;color:var(--text2);font-weight:600;align-self:center">&#191;Qu\xe9 es?</span><button class="dup-btn" onclick="resolverDupExacto('${ced}','traslado')">&#128260; Traslado (cerrar anterior)</button><button class="dup-btn" onclick="resolverDupExacto('${ced}','historial')">&#128203; Historial v&aacute;lido</button><button class="dup-btn" onclick="resolverDupExacto('${ced}','reingreso')">&#8617; Reingreso</button><button class="dup-btn danger" onclick="resolverDupExacto('${ced}','eliminar')">&#128465; Eliminar duplicado</button></div></div>`).join('');
+      +exactGroups.map(([ced,records])=>`<div class="dup-group-card"><div class="dup-group-header"><div class="dup-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>CC ${escapeHTML(ced)} &mdash; ${escapeHTML(records[0].nombre||'Sin nombre')}</div><span class="dup-score high">${records.length} registros ACTIVOS</span></div><div class="dup-comparison">${records.slice(0,2).map((r,i)=>'<div class="dup-col"><div class="dup-col-title">Registro '+(i+1)+'</div><div class="dup-field-row"><span class="dup-field-label">'+escapeHTML(nombreCampo('clientes'))+'</span><span class="dup-field-val diff">'+escapeHTML(r.cliente||'&mdash;')+'</span></div><div class="dup-field-row"><span class="dup-field-label">Cargo</span><span class="dup-field-val">'+escapeHTML(r.cargo||'&mdash;')+'</span></div><div class="dup-field-row"><span class="dup-field-label">Ingreso</span><span class="dup-field-val">'+escapeHTML(r.ingreso||'&mdash;')+'</span></div></div>').join('')}</div><div class="dup-actions"><span style="font-size:11px;color:var(--text2);font-weight:600;align-self:center">&#191;Qu\xe9 es?</span><button class="dup-btn" onclick="resolverDupExacto('${ced}','traslado')">&#128260; Traslado (cerrar anterior)</button><button class="dup-btn" onclick="resolverDupExacto('${ced}','historial')">&#128203; Historial v&aacute;lido</button><button class="dup-btn" onclick="resolverDupExacto('${ced}','reingreso')">&#8617; Reingreso</button><button class="dup-btn danger" onclick="resolverDupExacto('${ced}','eliminar')">&#128465; Eliminar duplicado</button></div></div>`).join('');
   }
 
   // ── Posibles: mismo nombre exacto, distinta cédula ─────────────────
@@ -11740,7 +12213,7 @@ function buildDuplicados() {
         +       '<th style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--text2);text-align:center">#</th>'
         +       '<th style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--text2);text-align:left">C\xe9dula</th>'
         +       '<th style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--text2);text-align:left">Estado</th>'
-        +       '<th style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--text2);text-align:left">Proyecto</th>'
+        +       '<th style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--text2);text-align:left">'+escapeHTML(nombreCampo('clientes'))+'</th>'
         +       '<th style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--text2);text-align:left">Cargo</th>'
         +       '<th style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--text2);text-align:left">Ingreso</th>'
         +       '<th style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--text2);text-align:left">Celular</th>'
@@ -12018,6 +12491,7 @@ const COMBOBOX_MAP = {
   f_cliente:'clientes', f_cargo:'cargos', f_eps:'eps',
   f_afp:'afp', f_arl:'arl', f_municipio:'municipios',
   f_motivo:'motivosRetiro',
+  f_talla_camisa:'tallasCamisa', f_talla_pantalon:'tallasPantalon', f_talla_zapatos:'tallasZapatos',
   'nov-eps':'eps', 'nov-arl':'arl', 'eno-eps':'eps', 'eno-arl':'arl',
   // Edición Masiva (Corrección de Datos): sin buscador era fácil escoger por error una opción
   // parecida y adyacente en la lista (p. ej. "Obra puente sur" en vez de
@@ -12193,7 +12667,7 @@ let CERT_SOLICITUDES = [];
 let _certSolFiltro = { empleadoQ:'', tipo:'', estado:'', desde:'', hasta:'' };
 let _certSolPage = 1;
 const CERTSOL_PAGE_SIZE = 10;
-const CERT_TIPOS = ['Certificado laboral','Detalle de horas extras','Liquidación de prestaciones sociales','Carta de cesantías','Otro'];
+const CERT_TIPOS = ['Certificado laboral','Liquidación de prestaciones sociales','Carta de cesantías','Otro'];
 
 function buildCertificados(tab) {
   _certTabActiva = tab;
@@ -12345,7 +12819,7 @@ function certsolSelectEmployee(id) {
   av.textContent = getInitials(emp.nombre);
   av.className = 'emp-avatar ' + (emp.genero==='FEMENINO'?'f':'m');
   document.getElementById('certsol-emp-name').textContent = emp.nombre;
-  document.getElementById('certsol-emp-meta').textContent = (emp.cargo||'Sin cargo') + ' · ' + (emp.cliente||'Sin proyecto') + ' · CC ' + emp.cedula;
+  document.getElementById('certsol-emp-meta').textContent = (emp.cargo||sinCampo('cargos')) + ' · ' + (emp.cliente||sinCampo('clientes')) + ' · CC ' + emp.cedula;
   const badge = document.getElementById('certsol-emp-badge');
   badge.textContent = emp.estado;
   badge.className = 'badge ' + (emp.estado==='ACTIVO'?'badge-activo':'badge-inactivo');
@@ -12897,7 +13371,7 @@ function _certShowInfoTooltip(iconEl, idx) {
     tip.className = 'info-tooltip-box';
     document.body.appendChild(tip);
   }
-  tip.innerHTML = '<div style="font-weight:700;margin-bottom:4px">' + escapeHTML(e.cliente||'Sin proyecto') + '</div>'
+  tip.innerHTML = '<div style="font-weight:700;margin-bottom:4px">' + escapeHTML(e.cliente||sinCampo('clientes')) + '</div>'
     + '<div>Cargo: ' + escapeHTML(e.cargo||'—') + '</div>'
     + '<div>Ingreso: ' + escapeHTML(e.ingreso||'—') + '</div>'
     + (e.estado === 'INACTIVO' ? '<div>Retiro: ' + escapeHTML(e.retiro||'—') + '</div>' : '')
@@ -12949,7 +13423,7 @@ function certSelectEmployee(id) {
   const nm = document.getElementById('certEmpName');
   if (nm) nm.textContent = emp.nombre;
   const mt = document.getElementById('certEmpMeta');
-  if (mt) mt.textContent = (emp.cargo||'Sin cargo') + ' · ' + (emp.cliente||'Sin proyecto') + ' · CC ' + emp.cedula;
+  if (mt) mt.textContent = (emp.cargo||sinCampo('cargos')) + ' · ' + (emp.cliente||sinCampo('clientes')) + ' · CC ' + emp.cedula;
   const ba = document.getElementById('certEmpBadge');
   if (ba) { ba.textContent = emp.estado; ba.className = 'badge ' + (emp.estado==='ACTIVO'?'badge-activo':'badge-inactivo'); }
 
@@ -13140,7 +13614,7 @@ function _certPoblarSelectorPeriodos(emp) {
   const contratos = [..._certTodosContratos(emp)].reverse(); // más reciente primero
   sel.innerHTML = contratos.map((c, i) => {
     const rango = (c.ingreso||'—') + ' a ' + (c.retiro || (c.estado==='ACTIVO' ? 'actualidad' : '—'));
-    const etiqueta = (c.cliente||'Sin proyecto') + ' (' + rango + ')' + (i===0 ? ' — más reciente' : '');
+    const etiqueta = (c.cliente||sinCampo('clientes')) + ' (' + rango + ')' + (i===0 ? ' — más reciente' : '');
     return '<option value="' + c.id + '">' + escapeHTML(etiqueta) + '</option>';
   }).join('');
   _certAplicarPeriodoCesantias(); // aplica el seleccionado (el más reciente) a "Laboró hasta"
@@ -13203,7 +13677,7 @@ function _certPoblarSelectorPeriodoLaboral(emp) {
   const valorPrevio = sel.value;
   sel.innerHTML = contratos.map((c, i) => {
     const rango = (c.ingreso||'—') + ' a ' + (c.retiro || (c.estado==='ACTIVO' ? 'actualidad' : '—'));
-    const etiqueta = (c.cliente||'Sin proyecto') + ' — ' + (c.cargo||'—') + ' (' + rango + ')' + (i===0 ? ' — más reciente' : '');
+    const etiqueta = (c.cliente||sinCampo('clientes')) + ' — ' + (c.cargo||'—') + ' (' + rango + ')' + (i===0 ? ' — más reciente' : '');
     return '<option value="' + c.id + '">' + escapeHTML(etiqueta) + '</option>';
   }).join('');
   if (valorPrevio && contratos.some(c => String(c.id) === valorPrevio)) sel.value = valorPrevio;
@@ -13414,12 +13888,6 @@ function certUpdatePreview() {
   const ingresoLargo = fechaLargaCert(empDatos.ingreso);
   const retiroLargo  = fechaLargaCert(empDatos.retiro);
 
-  // Horas extras: del último contrato cuando se muestran todos los períodos (certificado
-  // combinado), o del periodo puntual elegido cuando se muestra uno solo.
-  const contratoParaHex = tieneHistorialEfectivo ? ultimoContrato : periodoElegido;
-  const hexRow = (contratoParaHex.horas_extras && String(contratoParaHex.horas_extras).trim())
-    ? '<tr><td '+tdL+'>Valor Horas Extras:</td><td '+tdR+'>'+escapeHTML(formatCOP(contratoParaHex.horas_extras))+'</td></tr>'
-    : '';
   const tipoContratoRow = (incTipoContrato && tipoContratoTxt)
     ? '<tr><td '+tdL+'>Tipo de Contrato:</td><td '+tdR+'>'+escapeHTML(tipoContratoTxt)+'</td></tr>'
     : '';
@@ -13443,18 +13911,14 @@ function certUpdatePreview() {
         '<tr><td '+tdL+'>Historial de Vinculaci\xf3n:</td>'
         +'<td style="border:1px solid #000;color:#1a1a1a;padding:7px 10px;font-size:12px;vertical-align:top">'+filasHist+'</td></tr>'
         +tipoContratoRow
-        +(incSal   ? '<tr><td '+tdL+'>Salario Devengado:</td><td '+tdR+'>'+salTxtHTML+'</td></tr>' : '')
-        +hexRow
-        +(incHoras ? '<tr><td '+tdL+'>Horas Laboradas:</td><td '+tdR+'>'+escapeHTML(horasTxt)+'</td></tr>' : '');
+        +(incSal   ? '<tr><td '+tdL+'>Salario Devengado:</td><td '+tdR+'>'+salTxtHTML+'</td></tr>' : '')        +(incHoras ? '<tr><td '+tdL+'>Horas Laboradas:</td><td '+tdR+'>'+escapeHTML(horasTxt)+'</td></tr>' : '');
     } else {
       // ── Activo sin historial (o con historial pero oculto): filas normales ──
       filas +=
         '<tr><td '+tdL+'>Fecha de Ingreso:</td><td '+tdRb+'>'+escapeHTML(ingresoLargo)+'</td></tr>'
-        +'<tr><td '+tdL+'>Proyecto:</td><td '+tdR+'>'+escapeHTML(empDatos.cliente||'—')+'</td></tr>'
+        +'<tr><td '+tdL+'>'+escapeHTML(nombreCampo('clientes'))+':</td><td '+tdR+'>'+escapeHTML(empDatos.cliente||'—')+'</td></tr>'
         +tipoContratoRow
-        +(incSal   ? '<tr><td '+tdL+'>Salario Devengado:</td><td '+tdR+'>'+salTxtHTML+'</td></tr>' : '')
-        +hexRow
-        +(incHoras ? '<tr><td '+tdL+'>Horas Laboradas:</td><td '+tdR+'>'+escapeHTML(horasTxt)+'</td></tr>' : '')
+        +(incSal   ? '<tr><td '+tdL+'>Salario Devengado:</td><td '+tdR+'>'+salTxtHTML+'</td></tr>' : '')        +(incHoras ? '<tr><td '+tdL+'>Horas Laboradas:</td><td '+tdR+'>'+escapeHTML(horasTxt)+'</td></tr>' : '')
         +'<tr><td '+tdL+'>Cargo desempe\xf1ado:</td><td '+tdR+'>'+escapeHTML(empDatos.cargo||'—')+'</td></tr>';
     }
   } else {
@@ -13477,20 +13941,16 @@ function certUpdatePreview() {
         '<tr><td '+tdL+'>Historial de Vinculaci\xf3n:</td>'
         +'<td style="border:1px solid #000;color:#1a1a1a;padding:7px 10px;font-size:12px;vertical-align:top">'+filasHist+'</td></tr>'
         +tipoContratoRow
-        +(incSal ? '<tr><td '+tdL+'>Salario Devengado:</td><td '+tdR+'>'+salTxtHTML+'</td></tr>' : '')
-        +hexRow
-        +'<tr><td '+tdL+'>Desempe\xf1o.</td><td '+tdR+'>'+escapeHTML(desempeno)+'</td></tr>';
+        +(incSal ? '<tr><td '+tdL+'>Salario Devengado:</td><td '+tdR+'>'+salTxtHTML+'</td></tr>' : '')        +'<tr><td '+tdL+'>Desempe\xf1o.</td><td '+tdR+'>'+escapeHTML(desempeno)+'</td></tr>';
     } else {
       // ── Inactivo sin historial (o con historial pero oculto): filas normales ──
       filas +=
         '<tr><td '+tdL+'>Fecha de Ingreso:</td><td '+tdRb+'>'+escapeHTML(ingresoLargo)+'</td></tr>'
         +'<tr><td '+tdL+'>Fecha de Terminaci\xf3n:</td><td '+tdRb+'>'+(empDatos.retiro?escapeHTML(retiroLargo):'—')+'</td></tr>'
-        +'<tr><td '+tdL+'>Proyecto:</td><td '+tdRb+'>'+escapeHTML(empDatos.cliente||'—')+'</td></tr>'
+        +'<tr><td '+tdL+'>'+escapeHTML(nombreCampo('clientes'))+':</td><td '+tdRb+'>'+escapeHTML(empDatos.cliente||'—')+'</td></tr>'
         +'<tr><td '+tdL+'>Cargo desempe\xf1ado:</td><td '+tdRb+'>'+escapeHTML(empDatos.cargo||'—')+'</td></tr>'
         +tipoContratoRow
-        +(incSal ? '<tr><td '+tdL+'>Salario Devengado:</td><td '+tdR+'>'+salTxtHTML+'</td></tr>' : '')
-        +hexRow
-        +'<tr><td '+tdL+'>Motivo de terminaci\xf3n del contrato:</td><td '+tdR+'>'+escapeHTML(empDatos.motivo||'—')+'</td></tr>'
+        +(incSal ? '<tr><td '+tdL+'>Salario Devengado:</td><td '+tdR+'>'+salTxtHTML+'</td></tr>' : '')        +'<tr><td '+tdL+'>Motivo de terminaci\xf3n del contrato:</td><td '+tdR+'>'+escapeHTML(empDatos.motivo||'—')+'</td></tr>'
         +'<tr><td '+tdL+'>Desempe\xf1o.</td><td '+tdR+'>'+escapeHTML(desempeno)+'</td></tr>';
     }
   }
@@ -14377,7 +14837,7 @@ function cmHtmlFiltros() {
     + '<div class="cmx-buscar">' + cmIc('lupa') + '<input id="cm-f-q" placeholder="Buscar por nombre, cédula, código, motivo..." value="' + cmEsc(f.q) + '" oninput="cmOnFiltroTexto()" autocomplete="off"></div>'
     + sel('cm-f-estado', CM_ESTADOS, f.estado, 'Estado')
     + sel('cm-f-tipo', tipos, f.tipo, 'Tipo de caso')
-    + sel('cm-f-contrato', contratos, f.contrato, 'Proyecto')
+    + sel('cm-f-contrato', contratos, f.contrato, nombreCampo('clientes'))
     + sel('cm-f-responsable', responsables, f.responsable, 'Responsable')
     + '<select id="cm-f-periodo" class="cmx-sel' + (f.periodo ? ' con-valor' : '') + '" onchange="cmOnFiltro()" title="Fecha de reporte">'
     + CM_PERIODOS.map(([v, t]) => '<option value="' + v + '"' + (v === f.periodo ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>'
@@ -14783,7 +15243,7 @@ function cmHtmlTarjetaTrabajador(e, c) {
     + '<div style="flex:1;min-width:0"><div class="cmx-tr-n">' + cmEsc(cmNombrePropio(e.nombre))
     + '<span class="cmx-tr-est ' + (e.estado === 'ACTIVO' ? 'cmx-c-verde' : 'cmx-c-rojo') + '" title="Estado laboral">' + cmEsc(cmNombrePropio(e.estado || '—')) + '</span></div>'
     + '<div class="cmx-tr-d">C.C. ' + cmFmtCedula(e.cedula) + '<i>|</i>' + cmEsc(e.cargo || 'Sin cargo') + '</div>'
-    + '<div class="cmx-tr-d corta" title="' + cmEsc(e.cliente || '') + '">Proyecto: ' + cmEsc(e.cliente || '—') + '</div></div>'
+    + '<div class="cmx-tr-d corta" title="' + cmEsc(e.cliente || '') + '">' + cmEsc(nombreCampo('clientes')) + ': ' + cmEsc(e.cliente || '—') + '</div></div>'
     + '<button class="cmx-btn chico" onclick="openPanel(' + e.id + ')" title="Abrir la ficha del empleado">' + cmIc('externo') + 'Ver perfil</button></div>';
 }
 
@@ -15097,7 +15557,7 @@ function cmBuscarTrabajador() {
     ? '<div class="cm-emp-res">' + encontrados.map(e => '<div class="cm-emp-opt" onclick="cmSeleccionarTrabajador(' + e.id + ')">'
         + '<b>' + cmEsc(e.nombre) + '</b> · CC ' + cmEsc(e.cedula || '—')
         + ' <span class="badge ' + (e.estado === 'ACTIVO' ? 'badge-activo' : 'badge-inactivo') + '" style="font-size:10px">' + cmEsc(e.estado || '—') + '</span>'
-        + '<div style="font-size:11px;color:var(--text3)">' + cmEsc(e.cargo || 'Sin cargo') + ' · ' + cmEsc(e.cliente || 'Sin proyecto')
+        + '<div style="font-size:11px;color:var(--text3)">' + cmEsc(e.cargo || sinCampo('cargos')) + ' · ' + cmEsc(e.cliente || sinCampo('clientes'))
         + (e.ingreso ? ' · ingreso ' + cmEsc(e.ingreso) : '') + '</div></div>').join('') + '</div>'
     : '<div class="cm-vacio" style="margin-top:6px">Sin resultados</div>';
 }
@@ -15111,7 +15571,7 @@ function cmSeleccionarTrabajador(id) {
   document.getElementById('cm-nc-sel').innerHTML = '<div class="cm-trabajador"><div class="cm-avatar">' + cmEsc(cmIniciales(e.nombre)) + '</div>'
     + '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">' + cmEsc(e.nombre) + '</div>'
     + '<div style="font-size:11.5px;color:var(--text2)">CC ' + cmEsc(e.cedula || '—') + ' · ' + cmEsc(e.cargo || 'Sin cargo') + '</div>'
-    + '<div style="font-size:11.5px;color:var(--text2)">Proyecto: ' + cmEsc(e.cliente || '—') + ' · ' + cmEsc(e.estado || '—') + '</div></div>'
+    + '<div style="font-size:11.5px;color:var(--text2)">' + cmEsc(nombreCampo('clientes')) + ': ' + cmEsc(e.cliente || '—') + ' · ' + cmEsc(e.estado || '—') + '</div></div>'
     + '<button class="btn btn-ghost btn-sm" onclick="cmCambiarTrabajador()">Cambiar</button></div>'
     + (previos.length ? '<div class="cm-aviso' + (activos.length ? '' : ' info') + '" style="margin-top:8px">Este trabajador tiene '
         + cmPlural(previos.length, 'caso registrado', 'casos registrados')
@@ -15638,6 +16098,7 @@ async function cmGuardarReapertura(id) {
 }
 
 // ── EXPORTAR ──────────────────────────────────────────────────────────────────────────────
+const _cmColsCasos = () => CM_COLS_CASOS.map(c => c === 'Proyecto' ? nombreCampo('clientes') : c);
 const CM_COLS_CASOS = ['Código','Trabajador','Cédula','Cargo','Proyecto','Tipo de caso','Situación / motivo','Descripción inicial',
   'Fecha de reporte','Prioridad','Estado','Responsable','Último seguimiento','Próximo seguimiento','Próxima acción',
   'Fecha de cierre','Motivos de cierre','Resultado final','Observaciones de cierre','Origen','Registrado por','Registrado el'];
@@ -15663,7 +16124,7 @@ function cmExportarListadoExcel() {
   if (!lista.length) { showToast('No hay casos para exportar'); return; }
   const mapa = cmMapaEmpleados();
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, cmHojaExcel([CM_COLS_CASOS, ...lista.map(c => cmFilaExcelCaso(c, mapa))], CM_ANCHOS_CASOS), 'Casos');
+  XLSX.utils.book_append_sheet(wb, cmHojaExcel([_cmColsCasos(), ...lista.map(c => cmFilaExcelCaso(c, mapa))], CM_ANCHOS_CASOS), 'Casos');
   XLSX.writeFile(wb, 'casos_medicos_' + cmHoyISO() + '.xlsx');
   logAudit('export', 'casos_medicos', '', 'Exportó a Excel ' + cmPlural(lista.length, 'caso de seguimiento médico', 'casos de seguimiento médico'));
 }
@@ -15819,7 +16280,7 @@ function cmPdfCuerpo(det) {
       + '<div style="width:54px;height:54px;border-radius:50%;background:' + colorAv + ';color:#fff;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:center">' + cmEsc(cmIniciales(e.nombre)) + '</div></div>'
       + '<table style="flex:1;min-width:0;width:auto;border-collapse:collapse;font-size:10.5px">'
       + filaT('Nombre completo', cmEsc(cmNombrePropio(e.nombre))) + filaT('Identificación', 'C.C. ' + cmFmtCedula(e.cedula))
-      + filaT('Cargo', cmEsc(e.cargo || '—')) + filaT('Proyecto', cmEsc(e.cliente || '—'))
+      + filaT('Cargo', cmEsc(e.cargo || '—')) + filaT(cmEsc(nombreCampo('clientes')), cmEsc(e.cliente || '—'))
       + filaT('EPS', cmEsc(e.eps || '—')) + filaT('ARL', cmEsc(e.arl || '—'))
       + filaT('Estado laboral', cmPdfChip(cmNombrePropio(e.estado || '—'), e.estado === 'ACTIVO' ? ['#15803d', '#dcfce7'] : ['#dc2626', '#fdecec']))
       + '</table></div>'
@@ -16007,7 +16468,7 @@ function cmHtmlReportes() {
     + '<select id="cm-r-grupo" class="cmx-sel' + (f.grupo !== 'todos' ? ' con-valor' : '') + '" onchange="cmOnFiltroReporte()">'
     + [['todos','Todos los casos'],['activos','Solo activos'],['cerrados','Solo cerrados']].map(([v, t]) => '<option value="' + v + '"' + (f.grupo === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>'
     + sel('cm-r-tipo', tipos, f.tipo, 'Tipo de caso')
-    + sel('cm-r-contrato', contratos, f.contrato, 'Proyecto')
+    + sel('cm-r-contrato', contratos, f.contrato, nombreCampo('clientes'))
     + sel('cm-r-responsable', responsables, f.responsable, 'Responsable')
     + '<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">'
     + '<button class="cmx-btn" onclick="cmExportarReporteExcel()">' + cmIc('descargar') + 'Excel completo</button>'
@@ -16143,7 +16604,7 @@ async function cmExportarReporteExcel() {
     agregar('Casos por tipo', d.porTipo); agregar('Casos por contrato', d.porContrato); agregar('Casos por responsable', d.porResponsable);
     agregar('Casos por estado', d.porEstado); agregar('Casos por mes de reporte', d.porMes, cmEtiquetaMes);
     XLSX.utils.book_append_sheet(wb, cmHojaExcel(resumen, [44, 14]), 'Resumen');
-    XLSX.utils.book_append_sheet(wb, cmHojaExcel([CM_COLS_CASOS, ...d.casos.map(c => cmFilaExcelCaso(c, mapa))], CM_ANCHOS_CASOS), 'Casos');
+    XLSX.utils.book_append_sheet(wb, cmHojaExcel([_cmColsCasos(), ...d.casos.map(c => cmFilaExcelCaso(c, mapa))], CM_ANCHOS_CASOS), 'Casos');
     const trab = c => mapa.get(c?.empleado_id)?.nombre || '';
     XLSX.utils.book_append_sheet(wb, cmHojaExcel([['Código del caso','Trabajador','N.º','Fecha y hora','Tipo','Descripción','Gestión realizada','Resultado','Compromisos',
         'Próxima acción','Fecha próximo seguimiento','Estado después','Observaciones','Registro histórico','Responsable','Registrado el'],
@@ -16264,7 +16725,7 @@ function cmHtmlResultadoImportacion(imp) {
 const CM_PLANTILLA_COLS = [   // [encabezado, ancho, formato ('fecha' o lista desplegable), ¿obligatoria?, qué escribir]
   ['N.º', 6, '', 'No', 'Consecutivo opcional; el sistema no lo usa.'],
   ['NOMBRE DEL TRABAJADOR *', 42, '', 'Sí', 'Nombre completo, como aparece en la base de empleados.'],
-  ['CONTRATO', 24, '', 'No', 'Proyecto donde trabaja. Si la persona tiene varios contratos, ayuda a elegir el correcto.'],
+  ['CONTRATO', 24, '', 'No', 'Dónde trabaja, igual que en la ficha del empleado. Si la persona tiene varios contratos, ayuda a elegir el correcto.'],
   ['IDENTIFICACIÓN *', 18, '', 'Sí', 'Número de cédula, sin puntos ni espacios. Con ella se encuentra al trabajador; si falta, se busca por el nombre.'],
   ['TIPO DE CASO', 26, 'tipos', 'Recomendada', 'Elige un valor de la lista desplegable. Si queda vacía, el caso se importa como «Otro».'],
   ['SITUACIÓN / MOTIVO DEL CASO *', 50, '', 'Sí', 'Descripción corta de la situación de salud.'],
