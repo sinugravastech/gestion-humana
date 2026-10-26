@@ -19,31 +19,37 @@
   // La llave 'anon' es segura de incluir aquí: solo permite lo que las reglas (RLS) autoricen.
   const SUPABASE_URL = 'https://jdhhemnnxttiwhdknyry.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkaGhlbW5ueHR0aXdoZGtueXJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NjExOTYsImV4cCI6MjEwODMzNzE5Nn0.3MNPh_J1Sb5ssgqsGq6V4t3kVg5qlZjw-8qb8xbpquk';
-  // En este PC (el archivo abierto directo o localhost) la página usa la base REAL, igual que la publicada:
-  // así se revisan los cambios con los datos de verdad antes de subirlos a GitHub. El MODO DE PRUEBA, con la
-  // base simulada y datos inventados, se pide con index.html?prueba (o con los atajos de las pruebas,
-  // ?entrar=1). En la página publicada nunca hay modo de prueba.
-  const EN_ESTE_PC = location.protocol === 'file:' || /^(localhost|127.0.0.1)$/.test(location.hostname);
-  const MODO_LOCAL = !SUPABASE_URL || (EN_ESTE_PC && /[?&](prueba|entrar)(=|&|$)/.test(location.search));
+  // En este PC (el archivo abierto directo o localhost) la página es una VERSIÓN DE PRUEBA: trabaja sobre
+  // una base simulada que se guarda solo en este navegador, con datos inventados, así que nada de lo que
+  // se haga aquí toca la versión publicada. Se entra con cualquier correo y contraseña.
+  // Solo para revisar algo contra la base real desde aquí: index.html?nube=supabase.
+  // En la página publicada nunca hay modo de prueba.
+  const EN_ESTE_PC = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  const MODO_LOCAL = !SUPABASE_URL || (EN_ESTE_PC && !/[?&]nube=supabase(&|$)/.test(location.search));
+  // Un aviso fijo abajo a la derecha, para no confundir la versión de este PC con la publicada
+  const _avisoVersionPC = (texto, color) => {
+    const aviso = document.createElement('div');
+    aviso.id = 'aviso-version-pc';
+    aviso.textContent = texto;
+    aviso.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:9999;background:' + color + ';color:#fff;'
+      + 'font:600 11px/1 "Segoe UI",system-ui,sans-serif;padding:6px 10px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.2);pointer-events:none';
+    document.body.appendChild(aviso);
+  };
   if (MODO_LOCAL) {
-    document.write('<script src="pruebas/datos-inventados.js"><\/script><script src="pruebas/base-local.js"><\/script>');
-    // En el ingreso se avisa que es el modo local y se deja escrito el usuario de prueba
+    // Con ?v= para que el navegador no use una copia vieja guardada de estos archivos
+    const _v = Date.now();
+    document.write('<script src="pruebas/datos-inventados.js?v=' + _v + '"><\/script><script src="pruebas/base-local.js?v=' + _v + '"><\/script>');
     document.addEventListener('DOMContentLoaded', () => {
-      const correo = document.getElementById('login-email');
-      if (correo && !correo.value && window.BaseLocal) correo.value = window.BaseLocal.usuariosDePrueba()[0] || '';
       const pildora = document.querySelector('.login-secure-pill');
-      if (pildora) pildora.innerHTML = '<span class="login-secure-dot"></span>Modo local · datos inventados · cualquier contrase&ntilde;a';
+      if (pildora) pildora.innerHTML = '<span class="login-secure-dot"></span>Versi&oacute;n de prueba · no toca la real · cualquier contrase&ntilde;a';
+      _avisoVersionPC('Versión de prueba de este PC · no toca la versión real', '#0f766e');
     });
   } else if (EN_ESTE_PC) {
-    // La copia de este PC conectada a la base real: un aviso para no confundirla con la publicada
+    // La copia de este PC conectada a la base real (con ?nube=supabase)
     document.addEventListener('DOMContentLoaded', () => {
       const pildora = document.querySelector('.login-secure-pill');
       if (pildora) pildora.innerHTML = '<span class="login-secure-dot" style="background:#e07b12"></span>Versi&oacute;n de este PC · datos reales';
-      const aviso = document.createElement('div');
-      aviso.id = 'aviso-version-pc';
-      aviso.textContent = 'Versión de este PC · datos reales';
-      aviso.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:9999;background:#e07b12;color:#fff;font:600 11px/1 "Segoe UI",system-ui,sans-serif;padding:6px 10px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.2);pointer-events:none';
-      document.body.appendChild(aviso);
+      _avisoVersionPC('Versión de este PC · datos reales', '#e07b12');
     });
   }
 </script>
@@ -1272,6 +1278,9 @@ body.sb-contraida #sidebar .sb-item{border-radius:6px}
 .btn-primary:hover{background:var(--brand-600);border-color:var(--brand-600)}
 .btn-ghost{background:var(--card);color:var(--text);border:1px solid var(--ink-300)}
 .btn-ghost:hover{background:var(--ink-100);border-color:var(--ink-400);color:var(--text)}
+/* Botón claro sobre una barra oscura (p. ej. «Imprimir / PDF» en la vista previa del certificado) */
+.btn-sobre-oscuro{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55)}
+.btn-sobre-oscuro:hover{background:rgba(255,255,255,.14);color:#fff;border-color:#fff}
 .btn-icon{border-color:var(--ink-300)}
 .search-input,.filter-select,.form-input,.form-select,.combobox-input{border:1px solid var(--ink-300);border-radius:6px;font-size:13px}
 .search-input:focus,.filter-select:focus,.form-input:focus,.form-select:focus,.combobox-input:focus{
@@ -1300,12 +1309,27 @@ body.sb-contraida #panel-perfil{left:56px}
   box-shadow:var(--shadow);align-items:center;flex-wrap:wrap;gap:14px}
 .panel-avatar{width:60px;height:60px;font-size:21px}
 /* Foto del empleado: tapa las iniciales cuando la hay */
-.emp-avatar.con-foto,.panel-avatar.con-foto{background-size:cover;background-position:center;background-color:#e8edf5;color:transparent}
+/* Foto del empleado: una <img> dentro del círculo de iniciales (así también se abre con clic derecho) */
+.emp-avatar,.panel-avatar{position:relative;overflow:hidden}
+.foto-avatar-img{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:none;display:block}
+.emp-avatar.con-foto,.panel-avatar.con-foto{background:#e8edf5;color:transparent;cursor:zoom-in}
+#f_foto_preview.con-foto{cursor:default}
 .panel-avatar-wrap{position:relative;flex-shrink:0}
 .panel-foto-btn,.panel-foto-quitar{position:absolute;border-radius:50%;border:2px solid #fff;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .panel-foto-btn{right:-4px;bottom:-4px;width:24px;height:24px;background:var(--brand-500,#2a52ad)}
 .panel-foto-quitar{right:-4px;top:-4px;width:20px;height:20px;background:#dc2626;font-size:10px;line-height:1}
 .info-subtitulo{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px}
+/* Visor de archivos (igual que en flota): el PDF en el visor del navegador, la imagen tal cual */
+.bulk-modal.visor-archivo-caja{max-width:min(1040px,96vw)}
+.visor-pdf{width:100%;height:72vh;border:0;border-radius:6px;background:#fff;display:block}
+.visor-img{max-width:100%;max-height:72vh;border-radius:6px;display:block;margin:0 auto;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.visor-aviso{display:flex;align-items:center;justify-content:center;gap:8px;padding:48px 16px;color:var(--text2);font-size:13px;text-align:center}
+.visor-giro{width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+.doc-abrir{cursor:pointer}
+.doc-abrir:hover{color:var(--blue);text-decoration:underline}
+/* Soltar una foto sobre el círculo */
+.soltar-foto .panel-avatar,#f_foto_grupo.soltar-foto .emp-avatar{outline:3px dashed var(--brand-500,#2a52ad);outline-offset:3px}
+#f_foto_grupo.soltar-foto{background:var(--blue-light);border-radius:10px}
 .panel-name{font-size:20px;font-weight:700;letter-spacing:-.02em}
 .panel-meta{font-size:12.5px;color:var(--text3);margin-top:3px}
 .panel-close{border-color:var(--ink-300);color:var(--text2);font-size:12.5px;padding:5px 10px}
@@ -2407,10 +2431,6 @@ body.sb-contraida #panel-perfil{left:56px}
               <label class="form-label">Fecha del certificado</label>
               <input type="date" class="form-input" id="certFecha" oninput="certUpdatePreview()">
             </div>
-            <div class="form-group">
-              <label class="form-label">Firmante</label>
-              <input type="text" class="form-input" id="certFirmante" value="" placeholder="Nombre del representante legal" oninput="certUpdatePreview()">
-            </div>
             <div class="form-group" id="cert-row-salario" style="grid-column:span 2">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                 <label class="form-label" style="margin:0">Salario devengado (texto)</label>
@@ -2478,7 +2498,7 @@ body.sb-contraida #panel-perfil{left:56px}
             <div class="cert-preview-header">
               <span>Vista previa — Certificado Laboral</span>
               <div style="display:flex;gap:8px">
-                <button class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3)"
+                <button class="btn btn-sm btn-sobre-oscuro"
                   onclick="certPrint()">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                   Imprimir / PDF
@@ -2730,9 +2750,9 @@ body.sb-contraida #panel-perfil{left:56px}
   <div class="panel-migas"><button type="button" onclick="closePanel()">Empleados</button><span>›</span><span id="panelMigasNombre">—</span></div>
   <div class="panel-header">
     <div class="panel-emp-info">
-      <div class="panel-avatar-wrap">
-        <div class="panel-avatar" id="panelAvatar">?</div>
-        <button type="button" id="panelFotoBtn" class="panel-foto-btn" onclick="document.getElementById('panelFotoInput').click()" title="Subir o cambiar la foto" style="display:none">
+      <div class="panel-avatar-wrap" ondragover="_fotoArrastrando(event,this)" ondragleave="_fotoArrastreFuera(this)" ondrop="_fotoSoltada(event,this,true)">
+        <div class="panel-avatar" id="panelAvatar" onclick="abrirFotoEmpleado(currentEmpId,event)">?</div>
+        <button type="button" id="panelFotoBtn" class="panel-foto-btn" onclick="document.getElementById('panelFotoInput').click()" title="Subir o cambiar la foto (también puedes arrastrar una foto y soltarla sobre el círculo)" style="display:none">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
         <button type="button" id="panelFotoQuitar" class="panel-foto-quitar" onclick="_fotoFichaQuitar()" title="Quitar la foto" style="display:none">&#10005;</button>
@@ -2816,6 +2836,30 @@ body.sb-contraida #panel-perfil{left:56px}
   </div>
 </div>
 
+
+<!-- ══ VISOR DE ARCHIVOS (documentos del empleado) ══ -->
+<div id="visor-archivo" class="bulk-modal-overlay" style="display:none" onclick="if(event.target===this)cerrarVisorArchivo()">
+  <div class="bulk-modal visor-archivo-caja">
+    <div class="bulk-modal-header" style="display:block">
+      <div id="visor-archivo-titulo"></div>
+      <div id="visor-archivo-sub" style="font-size:12px;color:var(--text3);font-weight:400;margin-top:2px"></div>
+    </div>
+    <div class="bulk-modal-body" id="visor-archivo-cuerpo" style="padding:12px;background:var(--bg)"></div>
+    <div class="bulk-modal-footer" id="visor-archivo-pie"></div>
+  </div>
+</div>
+
+<!-- ══ VISOR DE LA FOTO DEL EMPLEADO ══ -->
+<div id="visor-foto" class="bulk-modal-overlay" style="display:none;background:rgba(10,15,25,.86)" onclick="if(event.target===this)cerrarVisorFoto()">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;max-width:92vw">
+    <img id="visor-foto-img" alt="Foto del empleado" style="max-width:92vw;max-height:calc(100vh - 140px);border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.5);background:#fff">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;color:#fff;font-size:13px;font-weight:600">
+      <span id="visor-foto-nombre"></span>
+      <a id="visor-foto-abrir" class="btn btn-sm btn-sobre-oscuro" target="_blank" rel="noopener">Abrir en otra pestaña</a>
+      <button type="button" class="btn btn-sm btn-sobre-oscuro" onclick="cerrarVisorFoto()">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ MODAL CAMBIAR NOMBRE DE UN CATÁLOGO ══ -->
 <div id="modal-renombrar-catalogo" class="bulk-modal-overlay" style="display:none" onclick="if(event.target===this)cerrarRenombrarCatalogo()">
@@ -3181,8 +3225,8 @@ body.sb-contraida #panel-perfil{left:56px}
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-section">Información básica</div>
-        <div class="form-group full" id="f_foto_grupo">
-          <label class="form-label">Foto <span style="font-size:10px;color:var(--text3);font-weight:400">(opcional · JPG, PNG o WEBP)</span></label>
+        <div class="form-group full" id="f_foto_grupo" ondragover="_fotoArrastrando(event,this)" ondragleave="_fotoArrastreFuera(this)" ondrop="_fotoSoltada(event,this,false)">
+          <label class="form-label">Foto <span style="font-size:10px;color:var(--text3);font-weight:400">(opcional · JPG, PNG o WEBP · también puedes arrastrarla aquí)</span></label>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div class="emp-avatar foto-avatar" id="f_foto_preview" style="width:56px;height:56px;font-size:18px"></div>
             <input type="file" id="f_foto" accept="image/jpeg,image/png,image/webp" onchange="_fotoFormElegida(this)" style="font-size:12px;max-width:260px">
@@ -4250,7 +4294,7 @@ function renderTable(){
       </td>
       <td>
         <div class="emp-cell">
-          <div class="emp-avatar ${g}"${emp.foto_path?` data-foto="${escapeHTML(emp.foto_path)}"`:''}>${escapeHTML(ini)}</div>
+          <div class="emp-avatar ${g}"${emp.foto_path?` data-foto="${escapeHTML(emp.foto_path)}" onclick="abrirFotoEmpleado(${emp.id},event)" title="Ver la foto en grande"`:''}>${escapeHTML(ini)}</div>
           <div>
             <div class="td-name">${escapeHTML(emp.nombre)}${missing?'<span class="warn-dot" title="Datos incompletos"></span>':''}</div>
             <div class="td-sub" style="display:flex;gap:5px;align-items:center">
@@ -4760,22 +4804,33 @@ const _fotoUrls = {};          // ruta → { url, vence }
 let _fotoFormNueva = null;     // foto ya achicada, elegida en el formulario
 let _fotoFormQuitada = false;  // en el formulario se pidió quitar la foto actual
 
-// Achica la imagen a máx. 512 px por lado y la pasa a JPEG (unos 50 a 120 KB)
-function _achicarFoto(archivo, lado = 512) {
+// Prepara la foto para subirla: en JPEG con 60 % de calidad (40 % menos) y en su tamaño original.
+// Solo si viene muy grande (más de 2400 px por lado, o si pasa de 1,9 MB, el tope del depósito es 2 MB)
+// se reduce lo justo, así se sigue viendo nítida en grande.
+function _prepararFoto(archivo) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(archivo);
     const img = new Image();
-    img.onload = () => {
-      const escala = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
-      const w = Math.max(1, Math.round(img.naturalWidth * escala));
-      const h = Math.max(1, Math.round(img.naturalHeight * escala));
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);   // fondo blanco para los PNG transparentes
-      ctx.drawImage(img, 0, 0, w, h);
+    img.onload = async () => {
       URL.revokeObjectURL(url);
-      c.toBlob(b => b ? resolve(b) : reject(new Error('No se pudo procesar la imagen')), 'image/jpeg', 0.85);
+      const dibujar = lado => new Promise(res => {
+        const escala = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.max(1, Math.round(img.naturalWidth * escala));
+        const h = Math.max(1, Math.round(img.naturalHeight * escala));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);   // fondo blanco para los PNG transparentes
+        ctx.drawImage(img, 0, 0, w, h);
+        c.toBlob(b => res(b), 'image/jpeg', 0.6);
+      });
+      let lado = Math.min(2400, Math.max(img.naturalWidth, img.naturalHeight));
+      for (;;) {
+        const blob = await dibujar(lado);
+        if (!blob) { reject(new Error('No se pudo procesar la imagen')); return; }
+        if (blob.size <= 1.9 * 1024 * 1024 || lado <= 800) { resolve(blob); return; }
+        lado = Math.round(lado * 0.8);
+      }
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('El archivo no es una imagen válida')); };
     img.src = url;
@@ -4808,12 +4863,58 @@ async function _precargarFotos(rutas) {
   data.forEach(d => { if (d.signedUrl && d.path) _fotoUrls[d.path] = { url: d.signedUrl, vence: Date.now() + 50 * 60 * 1000 }; });
 }
 
-// Pone la foto en un círculo de iniciales; sin foto, vuelven las iniciales
+// Pone la foto en un círculo de iniciales (como <img>, para que también se abra con clic derecho);
+// sin foto, vuelven las iniciales
 function _pintarFoto(el, url) {
   if (!el) return;
-  if (url) { el.style.backgroundImage = 'url("' + url + '")'; el.classList.add('con-foto'); }
-  else { el.style.backgroundImage = ''; el.classList.remove('con-foto'); }
+  let img = el.querySelector('img.foto-avatar-img');
+  if (!url) { if (img) img.remove(); el.classList.remove('con-foto'); if (el.id === 'panelAvatar') el.title = ''; return; }
+  if (!img) {
+    img = document.createElement('img');
+    img.className = 'foto-avatar-img';
+    img.alt = 'Foto';
+    el.appendChild(img);
+  }
+  img.onload = () => _encuadrarFoto(img);
+  img.src = url;
+  el.classList.add('con-foto');
+  if (el.id === 'panelAvatar') el.title = 'Ver la foto en grande';
 }
+
+// Encuadre en el círculo: un punto medio entre llenarlo (se recorta mucho) y ver la foto completa.
+// En las fotos verticales se deja ver desde arriba, donde suele estar la cara.
+function _encuadrarFoto(img) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  if (!w || !h) return;
+  const r = w / h;
+  let ancho, alto;   // en % del círculo
+  if (r < 1) { alto = (100 + 100 / r) / 2; ancho = alto * r; }
+  else       { ancho = (100 + 100 * r) / 2; alto = ancho / r; }
+  img.style.width = ancho.toFixed(2) + '%';
+  img.style.height = alto.toFixed(2) + '%';
+  img.style.top = r < 1 ? '0' : '50%';
+  img.style.transform = r < 1 ? 'translateX(-50%)' : 'translate(-50%,-50%)';
+}
+
+// Abre la foto en grande, con su calidad completa
+async function abrirFotoEmpleado(empId, ev) {
+  if (ev) ev.stopPropagation();
+  const emp = EMPLEADOS.find(e => e.id === empId);
+  if (!emp || !emp.foto_path) return;
+  const url = await urlFoto(emp.foto_path);
+  if (!url) { showToast('No se pudo abrir la foto'); return; }
+  document.getElementById('visor-foto-img').src = url;
+  document.getElementById('visor-foto-nombre').textContent = emp.nombre || '';
+  document.getElementById('visor-foto-abrir').href = url;
+  document.getElementById('visor-foto').style.display = 'flex';
+}
+function cerrarVisorFoto() {
+  document.getElementById('visor-foto').style.display = 'none';
+  document.getElementById('visor-foto-img').removeAttribute('src');
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('visor-foto')?.style.display === 'flex') cerrarVisorFoto();
+});
 
 // Llena los círculos que tienen data-foto (la tabla de empleados)
 async function _fotosEnPantalla(raiz) {
@@ -4873,14 +4974,18 @@ function _fotoFormPreparar(emp) {
 
 async function _fotoFormElegida(input) {
   const f = input.files && input.files[0];
-  if (!f) return;
-  if (!_validarArchivoFoto(f)) { input.value = ''; return; }
+  input.value = '';
+  if (f) await _fotoFormArchivo(f);
+}
+
+async function _fotoFormArchivo(f) {
+  if (!_validarArchivoFoto(f)) return;
   try {
-    _fotoFormNueva = await _achicarFoto(f);
+    _fotoFormNueva = await _prepararFoto(f);
     _fotoFormQuitada = false;
     _pintarFoto(document.getElementById('f_foto_preview'), URL.createObjectURL(_fotoFormNueva));
     document.getElementById('f_foto_quitar').style.display = '';
-  } catch (e) { showToast(escapeHTML(e.message)); input.value = ''; }
+  } catch (e) { showToast(escapeHTML(e.message)); }
 }
 
 function _fotoFormQuitar() {
@@ -4906,12 +5011,16 @@ async function _aplicarFotoDelFormulario(empId) {
 async function _fotoFichaSubir(input) {
   const f = input.files && input.files[0];
   input.value = '';
-  if (!f || !currentEmpId || !puedeEditar('empleados')) return;
+  if (f) await _fotoFichaArchivo(f);
+}
+
+async function _fotoFichaArchivo(f) {
+  if (!currentEmpId || !puedeEditar('empleados')) return;
   if (!_validarArchivoFoto(f)) return;
   const empId = currentEmpId;
   showBlockingOverlay('Subiendo la foto...');
   try {
-    const blob = await _achicarFoto(f);
+    const blob = await _prepararFoto(f);
     if (await guardarFotoEmpleado(empId, blob)) {
       showToast('&#10003; Foto guardada');
       if (currentEmpId === empId) openPanel(empId);
@@ -4919,6 +5028,23 @@ async function _fotoFichaSubir(input) {
     }
   } catch (e) { showToast(escapeHTML(e.message)); }
   finally { hideBlockingOverlay(); }
+}
+
+// Arrastrar una foto y soltarla sobre el círculo (en la ficha o en el formulario)
+function _fotoArrastrando(e, el) {
+  if (!puedeEditar('empleados') || !e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  el.classList.add('soltar-foto');
+}
+function _fotoArrastreFuera(el) { el.classList.remove('soltar-foto'); }
+function _fotoSoltada(e, el, enFicha) {
+  e.preventDefault();
+  el.classList.remove('soltar-foto');
+  if (!puedeEditar('empleados')) return;
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!f) return;
+  if (enFicha) _fotoFichaArchivo(f); else _fotoFormArchivo(f);
 }
 
 async function _fotoFichaQuitar() {
@@ -5030,13 +5156,14 @@ async function loadDocumentos() {
         const tam   = d.tamanio ? (d.tamanio > 1048576 ? (d.tamanio/1048576).toFixed(1)+'MB' : (d.tamanio/1024).toFixed(0)+'KB') : '';
         const titulo = d.tipo || d.nombre;  // título personalizado guardado en 'tipo'
         return '<div class="doc-item">'
-          + '<div class="doc-icon '+ico+'">'+emo+'</div>'
+          + '<div class="doc-icon '+ico+'" style="cursor:pointer" title="Ver el documento" onclick="verDocumento('+d.id+')">'+emo+'</div>'
           + '<div style="flex:1;min-width:0" id="doc-name-wrap-'+d.id+'">'
-          + '<div class="doc-name">'+escapeHTML(titulo)+'</div>'
+          + '<div class="doc-name doc-abrir" title="Ver el documento" onclick="verDocumento('+d.id+')">'+escapeHTML(titulo)+'</div>'
           + '<div class="doc-meta">'+escapeHTML(d.nombre)+' &middot; '+fecha+(d.subido_por?' &middot; '+escapeHTML(d.subido_por):'')+(tam?' &middot; '+tam:'')+'</div>'
           + '</div>'
           + (puedeEditar('empleados') ? '<button class="btn-icon" title="Editar tipo" onclick="editarTipoDocumento('+d.id+')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' : '')
-          + '<button class="btn-icon" title="Ver/Descargar" onclick="descargarDocumento('+d.id+',\''+escapeHTML(d.storage_path)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>'
+          + '<button class="btn-icon" title="Ver" onclick="verDocumento('+d.id+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>'
+          + '<button class="btn-icon" title="Descargar" onclick="descargarDocumento('+d.id+',\''+escapeHTML(d.storage_path)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>'
           + (puedeEditar('empleados') ? '<button class="btn-icon red" title="Eliminar" onclick="eliminarDocumento('+d.id+',\''+escapeHTML(d.storage_path)+'\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>' : '')
           + '</div>';
       }).join('')
@@ -5142,11 +5269,97 @@ function subirDocDesdeBoton(input) {
   subirDocumento(input, DOC_TIPOS[idx].key);
 }
 
-async function descargarDocumento(id, storagePath) {
-  const { data, error } = await sb.storage.from(CARPETA_DOCUMENTOS).createSignedUrl(storagePath, 3600);
-  if (error) { showToast('Error: ' + error.message); return; }
-  window.open(data.signedUrl, '_blank');
+// ── VISOR DE ARCHIVOS — como en flota: el PDF se ve aquí mismo en el visor del navegador, las
+// imágenes tal cual, y lo demás se ofrece para descargar. El archivo se baja una vez (como blob)
+// y queda listo mientras la página esté abierta.
+const _visorArchivos = {};   // depósito/ruta → { url, tipo, tam }
+
+function _pesoTexto(bytes) {
+  return bytes > 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(bytes / 1024)) + ' KB';
 }
+
+async function _bajarArchivo(bucket, ruta, nombre) {
+  const llave = bucket + '/' + ruta;
+  if (_visorArchivos[llave]) return _visorArchivos[llave];
+  const { data, error } = await sb.storage.from(bucket).download(ruta);
+  if (error || !data) return null;
+  // Para que el navegador lo muestre como PDF, el blob tiene que decir que es PDF
+  const esPdf = /\.pdf$/i.test(nombre || ruta) && !/pdf/i.test(data.type || '');
+  const blob = esPdf ? new Blob([data], { type: 'application/pdf' }) : data;
+  return (_visorArchivos[llave] = { url: URL.createObjectURL(blob), tipo: blob.type || '', tam: blob.size });
+}
+
+async function verArchivo({ bucket, ruta, nombre, titulo }) {
+  const visor = document.getElementById('visor-archivo');
+  document.getElementById('visor-archivo-titulo').textContent = titulo || nombre || 'Archivo';
+  document.getElementById('visor-archivo-sub').textContent = 'Abriendo el archivo…';
+  document.getElementById('visor-archivo-cuerpo').innerHTML =
+    '<div class="visor-aviso"><span class="visor-giro"></span>Bajando el archivo…</div>';
+  document.getElementById('visor-archivo-pie').innerHTML =
+    '<button class="btn btn-ghost btn-sm" onclick="cerrarVisorArchivo()">Cerrar</button>';
+  visor.style.display = 'flex';
+  const v = await _bajarArchivo(bucket, ruta, nombre);
+  if (visor.style.display !== 'flex') return;   // lo cerraron mientras bajaba
+  if (!v) {
+    cerrarVisorArchivo();
+    showToast('No se pudo abrir «' + escapeHTML(nombre || ruta) + '». Revisa el internet e intenta otra vez.');
+    return;
+  }
+  const ext = ((nombre || ruta).split('.').pop() || '').toLowerCase();
+  const pdf = ext === 'pdf' || /pdf/i.test(v.tipo);
+  const img = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext) || /^image\//.test(v.tipo);
+  document.getElementById('visor-archivo-sub').textContent = (nombre || '') + (v.tam ? ' · ' + _pesoTexto(v.tam) : '');
+  document.getElementById('visor-archivo-cuerpo').innerHTML = pdf
+    ? '<iframe class="visor-pdf" src="' + v.url + '" title="' + escapeHTML(nombre || 'Documento') + '"></iframe>'
+    : img ? '<img class="visor-img" src="' + v.url + '" alt="' + escapeHTML(nombre || 'Imagen') + '">'
+    : '<div class="visor-aviso">Este tipo de archivo no se puede ver aquí. Descárgalo para abrirlo.</div>';
+  document.getElementById('visor-archivo-pie').innerHTML =
+    '<a class="btn btn-ghost btn-sm" href="' + v.url + '" download="' + escapeHTML(nombre || 'archivo') + '">Descargar</a>'
+    + (pdf ? '<button class="btn btn-ghost btn-sm" onclick="imprimirVisorArchivo()">Imprimir</button>' : '')
+    + '<button class="btn btn-primary btn-sm" onclick="cerrarVisorArchivo()">Cerrar</button>';
+}
+
+// Imprime el PDF que se está viendo; si el navegador no deja, se abre aparte para imprimirlo desde ahí
+function imprimirVisorArchivo() {
+  const f = document.querySelector('#visor-archivo iframe.visor-pdf');
+  if (!f) return;
+  try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.open(f.src, '_blank'); }
+}
+
+function cerrarVisorArchivo() {
+  document.getElementById('visor-archivo').style.display = 'none';
+  document.getElementById('visor-archivo-cuerpo').innerHTML = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('visor-archivo')?.style.display === 'flex') cerrarVisorArchivo();
+});
+
+// Un documento del empleado: con un clic se ve aquí mismo
+function verDocumento(id) {
+  const d = (_docsActuales || []).find(x => x.id === id);
+  if (!d) return;
+  verArchivo({ bucket: CARPETA_DOCUMENTOS, ruta: d.storage_path, nombre: d.nombre, titulo: d.tipo || d.nombre });
+}
+
+// Descargarlo como archivo, con su nombre
+async function descargarDocumento(id, storagePath) {
+  const d = (_docsActuales || []).find(x => x.id === id);
+  const nombre = d ? d.nombre : storagePath.split('/').pop();
+  const v = await _bajarArchivo(CARPETA_DOCUMENTOS, storagePath, nombre);
+  if (!v) { showToast('No se pudo descargar el documento'); return; }
+  const a = document.createElement('a');
+  a.href = v.url;
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// Si se suelta un archivo fuera de una zona para soltar, que el navegador no lo abra encima de la página
+['dragover', 'drop'].forEach(tipo => window.addEventListener(tipo, e => {
+  if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) e.preventDefault();
+}));
 
 async function eliminarDocumento(id, storagePath) {
   if (_soloConsulta('empleados')) return;
@@ -13799,7 +14012,7 @@ function _certRenderCesantias(tipo) {
   const parcial   = (tipo === 'cesantias_parcial');
   const fechaIso  = document.getElementById('certFecha')?.value || new Date().toISOString().slice(0,10);
   const fechaTxt  = fechaLargaISO(fechaIso);
-  const firma     = (document.getElementById('certFirmante')?.value || EMPRESA.representante || '').trim().toUpperCase();
+  const firma     = (EMPRESA.representante || '').trim().toUpperCase();   // siempre firma el representante legal
   const fondo     = (document.getElementById('certFondo')?.value || '').trim();
   const fondoTxt  = fondo || '____________________';
 
@@ -13878,7 +14091,7 @@ function certUpdatePreview() {
   }
 
   const fecha     = document.getElementById('certFecha')?.value || new Date().toISOString().slice(0,10);
-  const firma     = (document.getElementById('certFirmante')?.value || EMPRESA.representante || '').trim().toUpperCase();
+  const firma     = (EMPRESA.representante || '').trim().toUpperCase();   // siempre firma el representante legal
   const salTxt    = (document.getElementById('certSalarioText')?.value || 'SALARIO MÍNIMO MENSUAL LEGAL VIGENTE (SMMLV) + AUXILIO DE TRANSPORTE LEGAL VIGENTE, CON SUS RESPECTIVAS DEDUCCIONES ESTABLECIDAS POR LEY').trim();
   const salTxtHTML = escapeHTML(salTxt).replace(/\n/g, '<br>');
   const horasTxt  = (document.getElementById('certHorasText')?.value || '42 HORAS SEMANALES').trim();
