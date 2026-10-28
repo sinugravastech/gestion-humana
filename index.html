@@ -759,6 +759,11 @@ html[data-theme="dark"] .catalog-list-item.active .catalog-count{background:rgba
 .catalog-item-row:hover{background:var(--bg)}
 .catalog-item-name{flex:1;font-size:13px;color:var(--text);font-weight:500}
 .catalog-item-meta{font-size:11px;color:var(--text3)}
+.catalog-item-empleador{font-size:11px;color:var(--text3);font-weight:400;margin-top:2px}
+.catalog-nota-centros{padding:10px 18px;font-size:12px;line-height:1.5;color:var(--blue-dark);background:var(--blue-light);border-bottom:1px solid var(--border)}
+/* La ventana de los datos de un centro de costo es alta: en pantallas bajas se desplaza por dentro y los botones siguen a la vista */
+#modal-centro-costo .bulk-modal{max-width:560px;max-height:calc(100vh - 48px);display:flex;flex-direction:column}
+#modal-centro-costo .bulk-modal-body{overflow-y:auto}
 .catalog-item-actions{display:flex;gap:6px}
 .cat-edit-form{padding:14px 18px;background:var(--bg);border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end}
 .cat-edit-form input{flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;outline:none}
@@ -1707,6 +1712,9 @@ tbody td{font-size:12.5px}
         <select class="filter-select" id="filterCargo" onchange="filterTable()">
           <option value="">Todos los cargos</option>
         </select>
+        <select class="filter-select" id="filterLugar" onchange="filterTable()">
+          <option value="">Todos los lugares de trabajo</option>
+        </select>
         <select class="filter-select" id="filterGenero" onchange="filterTable()">
           <option value="">Todos los géneros</option>
           <option value="FEMENINO">Femenino</option>
@@ -2181,6 +2189,9 @@ tbody td{font-size:12.5px}
           <select class="filter-select" id="masEditFilterCargo" onchange="filterMasEdit()">
             <option value="">Todos los cargos</option>
           </select>
+          <select class="filter-select" id="masEditFilterLugar" onchange="filterMasEdit()">
+            <option value="">Todos los lugares de trabajo</option>
+          </select>
           <select class="filter-select" id="masEditFilterEps" onchange="filterMasEdit()">
             <option value="">Todas las EPS</option>
           </select>
@@ -2219,12 +2230,11 @@ tbody td{font-size:12.5px}
           <button class="btn btn-ghost btn-sm" onclick="clearMasEditFilters()">Limpiar</button>
         </div>
 
-        <div id="masEditAdjuntoRenombrar" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:12px;color:#92400e" id="masEditAdjuntoRenombrarTexto"></span>
-          <select id="masEditAdjuntoNuevoTipo" class="filter-select" style="max-width:220px">
-            <option value="">Renombrar a...</option>
-          </select>
-          <button class="btn btn-primary btn-sm" onclick="renombrarTipoAdjuntoMasivo()">Renombrar todos</button>
+        <div id="masEditAdjuntoRenombrar" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--text2)" id="masEditAdjuntoRenombrarTexto"></span>
+          <input id="masEditAdjuntoNuevoTipo" type="text" class="form-input" maxlength="80" autocomplete="off" placeholder="Nombre nuevo"
+            style="max-width:260px;padding:7px 10px" onkeydown="if(event.key==='Enter')renombrarTipoAdjuntoMasivo()">
+          <button class="btn btn-primary btn-sm" onclick="renombrarTipoAdjuntoMasivo()">Cambiar en todos</button>
         </div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -2283,6 +2293,7 @@ tbody td{font-size:12.5px}
         <div class="catalog-sidebar">
           <div style="padding:10px 16px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)">Catálogos disponibles</div>
           <div class="catalog-list-item active" onclick="loadCatalog('clientes',this)"><span data-catalogo="clientes">Proyectos</span> <span class="catalog-count" id="cc-clientes">—</span></div>
+          <div class="catalog-list-item" onclick="loadCatalog('lugaresTrabajo',this)"><span data-catalogo="lugaresTrabajo">Lugares de trabajo</span> <span class="catalog-count" id="cc-lugaresTrabajo">—</span></div>
           <div class="catalog-list-item" onclick="loadCatalog('cargos',this)"><span data-catalogo="cargos">Cargos</span> <span class="catalog-count" id="cc-cargos">—</span></div>
           <div class="catalog-list-item" onclick="loadCatalog('eps',this)"><span data-catalogo="eps">EPS</span> <span class="catalog-count" id="cc-eps">—</span></div>
           <div class="catalog-list-item" onclick="loadCatalog('afp',this)"><span data-catalogo="afp">AFP / Pensi&#243;n</span> <span class="catalog-count" id="cc-afp">—</span></div>
@@ -2363,6 +2374,7 @@ tbody td{font-size:12.5px}
               <div style="flex:1">
                 <div id="certEmpName" style="font-size:14px;font-weight:700;color:var(--text)">—</div>
                 <div id="certEmpMeta" style="font-size:12px;color:var(--text2)">—</div>
+                <div id="certEmpEmpleador" style="font-size:11.5px;color:var(--text3);margin-top:2px"></div>
               </div>
               <span id="certEmpBadge" class="badge badge-activo">ACTIVO</span>
             </div>
@@ -2885,6 +2897,60 @@ tbody td{font-size:12.5px}
   </div>
 </div>
 
+<!-- ══ MODAL DATOS DEL CENTRO DE COSTO (con qué empleador salen sus certificados) ══ -->
+<div id="modal-centro-costo" class="bulk-modal-overlay" style="display:none" onclick="if(event.target===this)cerrarDatosCentro()">
+  <div class="bulk-modal">
+    <div class="bulk-modal-header">&#127970; Datos para los certificados · <span id="centro-costo-titulo"></span></div>
+    <div class="bulk-modal-body">
+      <div style="background:var(--blue-light);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--blue-dark)">
+        Con estos datos salen el certificado laboral, las cartas de cesantías y la hoja de vida de quienes están en este <span data-campo-min="clientes">centro de costo</span>.
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Quién contrata</label>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="centro-tipo" value="empresa" onchange="_centroTipoCambio()"> Una empresa</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="centro-tipo" value="persona" onchange="_centroTipoCambio()"> Una persona natural</label>
+        </div>
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group" style="grid-column:span 2">
+          <label class="form-label" id="centro-nombre-label">Razón social *</label>
+          <input type="text" class="form-input" id="centro-nombre" maxlength="120">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="centro-nit-label">NIT *</label>
+          <input type="text" class="form-input" id="centro-nit" maxlength="40" placeholder="Ej: 900.646.414-3">
+        </div>
+        <div class="form-group" id="centro-representante-grupo">
+          <label class="form-label">Representante legal (firma)</label>
+          <input type="text" class="form-input" id="centro-representante" maxlength="120">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ciudad donde se firman</label>
+          <input type="text" class="form-input" id="centro-ciudad" maxlength="80">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Celular</label>
+          <input type="text" class="form-input" id="centro-celular" maxlength="40">
+        </div>
+        <div class="form-group" style="grid-column:span 2">
+          <label class="form-label">Dirección (va en el pie del certificado)</label>
+          <input type="text" class="form-input" id="centro-direccion" maxlength="160">
+        </div>
+        <div class="form-group" style="grid-column:span 2">
+          <label class="form-label">Correo (opcional)</label>
+          <input type="email" class="form-input" id="centro-correo" maxlength="120">
+          <span class="form-hint">La firma es la misma para todos: la de Respaldo y datos.</span>
+        </div>
+      </div>
+    </div>
+    <div class="bulk-modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarDatosCentro()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarDatosCentro()">&#10003; Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL TRASLADO MASIVO ══ -->
 <div id="modal-trasladar" class="bulk-modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalTrasladar()">
   <div class="bulk-modal">
@@ -3044,6 +3110,10 @@ tbody td{font-size:12.5px}
         <div class="form-group">
           <label class="form-label">Cargo</label>
           <select class="form-select" id="masedit-cargo" style="width:100%"><option value="">— No cambiar —</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-campo="lugaresTrabajo">Lugar de trabajo</label>
+          <select class="form-select" id="masedit-lugar" style="width:100%"><option value="">— No cambiar —</option></select>
         </div>
         <div class="form-group">
           <label class="form-label">EPS</label>
@@ -3279,6 +3349,11 @@ tbody td{font-size:12.5px}
         <div class="form-group">
           <label class="form-label"><span data-campo="cargos">Cargo</span> *</label>
           <select class="form-select" id="f_cargo" style="width:100%"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-campo="lugaresTrabajo">Lugar de trabajo</label>
+          <select class="form-select" id="f_lugar_trabajo" style="width:100%"></select>
+          <span class="form-hint">Las fincas y sedes se agregan en Catálogos → <span data-catalogo="lugaresTrabajo">Lugares de trabajo</span></span>
         </div>
         <div class="form-group">
           <label class="form-label">Fecha de ingreso</label>
@@ -3748,6 +3823,7 @@ function showSection(id, el) {
 // Valor especial para filtrar los registros cuyo cliente/cargo NO coincide con ninguna
 // entrada del catálogo (para no perder de vista los que están mal escritos o son nuevos).
 const FILTRO_FUERA_CATALOGO = '__fuera_catalogo__';
+const FILTRO_SIN_VALOR = '__sin_valor__';   // los que tienen el campo vacío (p. ej. sin lugar de trabajo)
 
 // Valores crudos de EMPLEADOS para un campo que NO coinciden con ninguna entrada del
 // catálogo (ignorando mayúsculas/tildes), agrupados por igualdad exacta y contados —
@@ -3794,6 +3870,21 @@ function initFilters(){
           + '</optgroup>' : '');
     if(prev === FILTRO_FUERA_CATALOGO || cargos.includes(prev) || fuera.some(([v])=>v===prev)) cc.value = prev;
   }
+  // Lugar de trabajo: el catálogo, más los que aún no tienen lugar y los valores fuera del catálogo
+  const cl = document.getElementById('filterLugar');
+  if(cl){
+    const prev = cl.value;
+    const lugares = [...(CATALOGS.lugaresTrabajo||[])].sort();
+    const fuera = _valoresFueraCatalogo('lugar_trabajo', CATALOGS.lugaresTrabajo||[]);
+    cl.innerHTML = '<option value="">' + escapeHTML(frase('todosLugares')) + '</option>'
+      + `<option value="${FILTRO_SIN_VALOR}">${escapeHTML(sinCampo('lugaresTrabajo'))}</option>`
+      + (fuera.length ? `<option value="${FILTRO_FUERA_CATALOGO}">⚠ Fuera del catálogo (todos)</option>` : '')
+      + lugares.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('')
+      + (fuera.length ? '<optgroup label="⚠ Fuera del catálogo — por valor">'
+          + fuera.map(([v,n])=>`<option value="${escapeHTML(v)}">${escapeHTML(v)} (${n})</option>`).join('')
+          + '</optgroup>' : '');
+    if(prev === FILTRO_SIN_VALOR || (prev === FILTRO_FUERA_CATALOGO && fuera.length) || lugares.includes(prev) || fuera.some(([v])=>v===prev)) cl.value = prev;
+  }
 }
 
 // Coincidencia de filtro cliente/cargo: ignora mayúsculas y tildes contra la grafía del catálogo,
@@ -3807,26 +3898,19 @@ function _matchFiltroCatalogo(valorEmpleado, filtroSeleccionado, catalogo){
   return v === _stripAccentsCached(filtroSeleccionado.trim()).toUpperCase();
 }
 
-// Igual que _valoresFueraCatalogo, pero para tipos de adjunto: estos no son un campo
-// directo de EMPLEADOS sino que viven en documentos_empleados (varios por empleado),
-// así que se recorre _empAdjuntoTipos en vez de EMPLEADOS.
-function _valoresFueraCatalogoAdjuntos(){
-  const catalogo = CATALOGS.tiposAdjunto || [];
+// Los nombres de adjunto que hay, con cuántos documentos lleva cada uno. No son un campo directo
+// de EMPLEADOS sino que viven en documentos_empleados (varios por empleado), así que se recorre
+// _empAdjuntoTipos. Se escriben libres en la ficha: no se comparan con ningún catálogo.
+function _nombresDeAdjuntos(){
   const conteo = {};
-  Object.values(_empAdjuntoTipos).forEach(tipos => {
-    tipos.forEach(v => {
-      const enCatalogo = catalogo.some(c => _stripAccentsCached(String(c).trim()).toUpperCase() === _stripAccentsCached(v).toUpperCase());
-      if(!enCatalogo) conteo[v] = (conteo[v]||0)+1;
-    });
-  });
-  return Object.entries(conteo).sort((a,b)=>b[1]-a[1]);
+  Object.values(_empAdjuntoTipos).forEach(tipos => tipos.forEach(v => { conteo[v] = (conteo[v]||0)+1; }));
+  return Object.entries(conteo).sort((a,b)=>a[0].localeCompare(b[0], 'es', { sensitivity:'base' }));
 }
 
-// Un empleado puede tener varios adjuntos con distintos tipos — coincide si AL MENOS
-// uno de ellos coincide con el filtro seleccionado (catálogo, valor puntual o "fuera de catálogo").
+// Un empleado puede tener varios adjuntos con distintos nombres — coincide si AL MENOS
+// uno de ellos es el elegido en el filtro.
 function _empleadoTieneAdjuntoQueCoincide(empId, filtroSeleccionado){
-  const tipos = _empAdjuntoTipos[Number(empId)] || [];
-  return tipos.some(t => _matchFiltroCatalogo(t, filtroSeleccionado, CATALOGS.tiposAdjunto||[]));
+  return (_empAdjuntoTipos[Number(empId)] || []).includes(filtroSeleccionado);
 }
 
 // Búsqueda amplia (nombre/cédula/cliente/cargo): ignora tildes y mayúsculas/minúsculas.
@@ -3837,18 +3921,21 @@ function filterTable(){
   const estado = document.getElementById('filterEstado').value;
   const cliente   = document.getElementById('filterCliente').value;
   const cargo     = document.getElementById('filterCargo').value;
+  const lugar     = document.getElementById('filterLugar')?.value || '';
   const genero    = document.getElementById('filterGenero').value;
   const criticos  = document.getElementById('filterCriticos')?.value || '';
   filteredData = EMPLEADOS.filter(e=>{
     if(estado && e.estado!==estado) return false;
     if(cliente && !_matchFiltroCatalogo(e.cliente, cliente, CATALOGS.clientes||[])) return false;
     if(cargo && !_matchFiltroCatalogo(e.cargo, cargo, CATALOGS.cargos||[])) return false;
+    if(lugar && (lugar === FILTRO_SIN_VALOR ? !!(e.lugar_trabajo||'').trim()
+                                            : !_matchFiltroCatalogo(e.lugar_trabajo, lugar, CATALOGS.lugaresTrabajo||[]))) return false;
     if(genero && e.genero!==genero) return false;
     if(criticos === 'sin_nombre'  && e.nombre  && e.nombre.trim())  return false;
     if(criticos === 'sin_cliente' && e.cliente && e.cliente.trim()) return false;
     if(criticos === 'sin_cedula'  && e.cedula  && e.cedula.trim())  return false;
     if(q){
-      const hay = _normTexto((e.nombre||'')+' '+(e.cedula||'')+' '+(e.cliente||'')+' '+(e.cargo||''));
+      const hay = _normTexto((e.nombre||'')+' '+(e.cedula||'')+' '+(e.cliente||'')+' '+(e.cargo||'')+' '+(e.lugar_trabajo||''));
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -3862,7 +3949,7 @@ function filterTable(){
 
 function clearFilters(){
   document.getElementById('searchInput').value='';
-  ['filterEstado','filterCliente','filterCargo','filterGenero','filterCriticos'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['filterEstado','filterCliente','filterCargo','filterLugar','filterGenero','filterCriticos'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   filteredData=[...EMPLEADOS];
   currentPage=1;
   _selectedEmps.clear();
@@ -4150,6 +4237,7 @@ async function ejecutarReingreso() {
     // 2) Crear el nuevo registro (copia de los datos del empleado, con el nuevo periodo)
     const nuevoPayload = {
       cedula: emp.cedula||'', nombre: emp.nombre||'', cliente: emp.cliente||'', cargo: emp.cargo||'',
+      lugar_trabajo: emp.lugar_trabajo||'',
       genero: emp.genero||'', nacimiento: emp.nacimiento||'', edad: emp.edad||null,
       escolaridad: emp.escolaridad||'', direccion: emp.direccion||'', celular: emp.celular||'',
       municipio: emp.municipio||'', departamento: emp.departamento||'',
@@ -4358,11 +4446,13 @@ function renderActiveFilters(){
   const estado=document.getElementById('filterEstado').value;
   const cliente=document.getElementById('filterCliente').value;
   const cargo=document.getElementById('filterCargo').value;
+  const lugar=document.getElementById('filterLugar')?.value||'';
   const genero=document.getElementById('filterGenero').value;
   const etiquetaFiltro = v => v === FILTRO_FUERA_CATALOGO ? '⚠ Fuera del catálogo' : v;
   if(estado) tags.push(`Estado: ${estado}`);
   if(cliente) tags.push(`${escapeHTML(nombreCampo('clientes'))}: ${etiquetaFiltro(cliente)}`);
   if(cargo) tags.push(`Cargo: ${etiquetaFiltro(cargo)}`);
+  if(lugar) tags.push(escapeHTML(lugar === FILTRO_SIN_VALOR ? sinCampo('lugaresTrabajo') : nombreCampo('lugaresTrabajo') + ': ' + etiquetaFiltro(lugar)));
   if(genero) tags.push(`Género: ${genero}`);
   cont.innerHTML=tags.map(t=>`<span class="filter-tag">${t} <span onclick="clearFilters()">✕</span></span>`).join('');
 }
@@ -4383,7 +4473,7 @@ function openPanel(id){
   document.getElementById('panelFotoQuitar').style.display = (puedeFoto && emp.foto_path) ? '' : 'none';
   document.getElementById('panelNombre').textContent=emp.nombre;
   document.getElementById('panelMigasNombre').textContent=emp.nombre;
-  document.getElementById('panelMeta').textContent=`${emp.cargo||sinCampo('cargos')} · ${emp.cliente||sinCampo('clientes')}`;
+  document.getElementById('panelMeta').textContent=`${emp.cargo||sinCampo('cargos')} · ${emp.cliente||sinCampo('clientes')}${emp.lugar_trabajo ? ' · ' + emp.lugar_trabajo : ''}`;
   const pb=document.getElementById('panelBadge');
   pb.textContent=emp.estado;
   pb.className='badge '+(emp.estado==='ACTIVO'?'badge-activo':'badge-inactivo');
@@ -4423,6 +4513,7 @@ function openPanel(id){
   document.getElementById('infoLaboral').innerHTML=renderInfoGrid([
     [nombreCampo('clientes'),emp.cliente,'required'],
     [nombreCampo('cargos'),emp.cargo,'required'],
+    [nombreCampo('lugaresTrabajo'),emp.lugar_trabajo],
     ['Estado',emp.estado],
     ['Fecha de ingreso',emp.ingreso],
     ['Fecha de retiro',emp.retiro],
@@ -4636,7 +4727,7 @@ function openEditModal(id){
   const fields = {
     nombre:'', cedula:'', estado:'ACTIVO', genero:'FEMENINO',
     nacimiento:'', escolaridad:'', direccion:'', celular:'', correo:'',
-    cliente:'', cargo:'', ingreso:'', retiro:'', motivo:'',
+    cliente:'', cargo:'', lugar_trabajo:'', ingreso:'', retiro:'', motivo:'',
     municipio:'', horas:'', salario:'', aux_transporte:'', eps:'', afp:'', arl:'',
     riesgo:'', talla_camisa:'', talla_pantalon:'', talla_zapatos:'', notas:''
   };
@@ -4713,6 +4804,7 @@ async function saveEdit(){
     correo:      fv('f_correo'),
     cliente:     fv('f_cliente'),
     cargo:       fv('f_cargo'),
+    lugar_trabajo: fv('f_lugar_trabajo'),
     ingreso:     _fromInputDate(fv('f_ingreso')),
     retiro:      _fromInputDate(fv('f_retiro')),
     motivo:      fv('f_motivo'),
@@ -4741,6 +4833,7 @@ async function saveEdit(){
   datosNuevos.afp       = _snapToCatalog(datosNuevos.afp,       'afp');
   datosNuevos.arl       = _snapToCatalog(datosNuevos.arl,       'arl');
   datosNuevos.municipio = _snapToCatalog(datosNuevos.municipio, 'municipios');
+  datosNuevos.lugar_trabajo = _snapToCatalog(datosNuevos.lugar_trabajo, 'lugaresTrabajo');
 
   // No permitir crear un empleado NUEVO como ACTIVO si esa misma cédula ya está ACTIVA en
   // otro contrato — evita que una persona quede con 2 contratos activos a la vez por error.
@@ -5098,6 +5191,11 @@ function _recalcularNovCounts() {
 }
 let _empAdjuntoTipos = {};  // { empId: [tipo1, tipo2, ...] } — tipos de adjunto por empleado (para filtro en Edición Masiva)
 let _docsActuales = [];  // documentos del empleado actualmente abierto en el panel (para editar el tipo sin re-consultar)
+// El nombre de cada adjunto se escribe libre en la ficha (no sale de un catálogo): sin espacios de más
+const DOC_NOMBRE_MAX = 80;
+function _nombreAdjunto(texto) {
+  return String(texto || '').replace(/\s+/g, ' ').trim().slice(0, DOC_NOMBRE_MAX);
+}
 
 async function loadDocumentos() {
   const empId = currentEmpId;
@@ -5123,12 +5221,10 @@ async function loadDocumentos() {
       ondragleave="event.preventDefault();event.stopPropagation();this.style.borderColor='var(--border)';this.style.background='var(--bg)'"
       ondrop="event.preventDefault();event.stopPropagation();this.style.borderColor='var(--border)';this.style.background='var(--bg)';subirDocumentosMultiples(event.dataTransfer.files)">
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">Adjuntar documento</div>
-      <select id="doc-titulo-input"
-        style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;box-sizing:border-box;margin-bottom:8px;outline:none;background:var(--card)"
+      <input id="doc-titulo-input" type="text" maxlength="${DOC_NOMBRE_MAX}" autocomplete="off"
+        placeholder="Nombre del adjunto (ej.: Certificado de curso de alturas)"
+        style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);box-sizing:border-box;margin-bottom:8px;outline:none;background:var(--card)"
         onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">
-        <option value="">— Selecciona el tipo de documento —</option>
-        ${CATALOGS.tiposAdjunto.map(t=>`<option value="${t}">${t}</option>`).join('')}
-      </select>
       <div style="display:flex;gap:8px;align-items:center">
         <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -5168,7 +5264,7 @@ async function loadDocumentos() {
           + '<div class="doc-name doc-abrir" title="Ver el documento" onclick="verDocumento('+d.id+')">'+escapeHTML(titulo)+'</div>'
           + '<div class="doc-meta">'+escapeHTML(d.nombre)+' &middot; '+fecha+(d.subido_por?' &middot; '+escapeHTML(d.subido_por):'')+(tam?' &middot; '+tam:'')+'</div>'
           + '</div>'
-          + (puedeEditar('empleados') ? '<button class="btn-icon" title="Editar tipo" onclick="editarTipoDocumento('+d.id+')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' : '')
+          + (puedeEditar('empleados') ? '<button class="btn-icon" title="Cambiar el nombre" onclick="editarTipoDocumento('+d.id+')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' : '')
           + '<button class="btn-icon" title="Ver" onclick="verDocumento('+d.id+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>'
           + '<button class="btn-icon" title="Descargar" onclick="descargarDocumento('+d.id+',\''+escapeHTML(d.storage_path)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>'
           + (puedeEditar('empleados') ? '<button class="btn-icon red" title="Eliminar" onclick="eliminarDocumento('+d.id+',\''+escapeHTML(d.storage_path)+'\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>' : '')
@@ -5180,14 +5276,14 @@ async function loadDocumentos() {
 }
 
 // Sube uno o varios archivos a la vez (botón "Seleccionar archivo(s)" o arrastrar y
-// soltar sobre el formulario), todos bajo el mismo tipo elegido en el desplegable.
+// soltar sobre el formulario), todos con el nombre escrito en el formulario.
 async function subirDocumentosMultiples(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length || !_docsEmpId) return;
 
   const tituloEl = document.getElementById('doc-titulo-input');
-  const titulo   = tituloEl?.value?.trim();
-  if (!titulo) { showToast('Selecciona el tipo de documento antes de adjuntarlo'); return; }
+  const titulo   = _nombreAdjunto(tituloEl?.value);
+  if (!titulo) { showToast('Escribe el nombre del adjunto antes de subirlo'); tituloEl?.focus(); return; }
 
   const validos = [];
   for (const f of files) {
@@ -5238,6 +5334,7 @@ async function _subirUnDocumento(file, titulo) {
   if (dbErr) { await sb.storage.from(CARPETA_DOCUMENTOS).remove([path]); showToast('Error registrando "' + file.name + '": ' + dbErr.message); return false; }
 
   _docsCounts[_docsEmpId] = (_docsCounts[_docsEmpId] || 0) + 1;
+  (_empAdjuntoTipos[_docsEmpId] = _empAdjuntoTipos[_docsEmpId] || []).push(titulo);   // para el filtro de Edición masiva
   return true;
 }
 
@@ -5381,6 +5478,11 @@ async function eliminarDocumento(id, storagePath) {
       _docsCounts[_docsEmpId] = Math.max(0, _docsCounts[_docsEmpId] - 1);
       renderTable();
     }
+    // Quitar su nombre de la lista que usa el filtro de Edición masiva
+    const borrado = _docsActuales.find(d => d.id === id);
+    const nombres = _empAdjuntoTipos[_docsEmpId];
+    const pos = borrado && nombres ? nombres.indexOf((borrado.tipo || '').trim()) : -1;
+    if (pos !== -1) nombres.splice(pos, 1);
     await logAudit('delete', 'documentos', String(_docsEmpId), 'Elimino documento');
     showToast('Documento eliminado');
     loadDocumentos();
@@ -5389,36 +5491,34 @@ async function eliminarDocumento(id, storagePath) {
   }
 }
 
-// Reemplaza el nombre del documento por un <select> del catálogo de Adjuntos, para
-// corregir el tipo sin tener que borrar y volver a subir el archivo.
+// Cambia ahí mismo el nombre del adjunto, en un campo libre, sin tener que borrar y volver a
+// subir el archivo.
 function editarTipoDocumento(id) {
   const wrap = document.getElementById('doc-name-wrap-' + id);
   const doc  = _docsActuales.find(d => d.id === id);
   if (!wrap || !doc) return;
-  const catalogo   = CATALOGS.tiposAdjunto || [];
-  const tipoActual = (doc.tipo || '').trim();
-  const enCatalogo = catalogo.some(c => c === tipoActual);
   wrap.innerHTML = `
-    <select id="doc-tipo-edit-${id}" style="width:100%;padding:6px 8px;border:1.5px solid var(--blue);border-radius:6px;font-size:12px;outline:none;background:var(--card)">
-      ${(!enCatalogo && tipoActual) ? `<option value="${escapeHTML(tipoActual)}" selected>${escapeHTML(tipoActual)} (actual — fuera de catálogo)</option>` : ''}
-      ${catalogo.map(c=>`<option value="${escapeHTML(c)}" ${c===tipoActual?'selected':''}>${escapeHTML(c)}</option>`).join('')}
-    </select>
+    <input id="doc-tipo-edit-${id}" type="text" maxlength="${DOC_NOMBRE_MAX}" autocomplete="off" placeholder="Nombre del adjunto"
+      value="${escapeHTML((doc.tipo || '').trim())}" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarTipoDocumento(${id})}"
+      style="width:100%;padding:6px 8px;border:1.5px solid var(--blue);border-radius:6px;font-size:12px;color:var(--text);box-sizing:border-box;outline:none;background:var(--card)">
     <div style="display:flex;gap:6px;margin-top:6px">
       <button class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px" onclick="guardarTipoDocumento(${id})">Guardar</button>
       <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px" onclick="loadDocumentos()">Cancelar</button>
     </div>`;
+  const campo = document.getElementById('doc-tipo-edit-' + id);
+  campo.focus();
+  campo.select();
 }
 
 async function guardarTipoDocumento(id) {
   if (_soloConsulta('empleados')) return;
-  const sel = document.getElementById('doc-tipo-edit-' + id);
-  const nuevoTipo = sel?.value;
-  if (!nuevoTipo) { showToast('Selecciona un tipo'); return; }
+  const nuevoTipo = _nombreAdjunto(document.getElementById('doc-tipo-edit-' + id)?.value);
+  if (!nuevoTipo) { showToast('Escribe el nombre del adjunto'); return; }
   const doc = _docsActuales.find(d => d.id === id);
   const tipoAnterior = doc?.tipo || '';
   if (nuevoTipo === tipoAnterior) { loadDocumentos(); return; }
 
-  showBlockingOverlay('Actualizando tipo...');
+  showBlockingOverlay('Guardando el nombre...');
   try {
     const { data, error } = await sb.from('documentos_empleados').update({ tipo: nuevoTipo }).eq('id', id).select('id');
     if (error) { showToast('Error: ' + error.message); return; }
@@ -5431,8 +5531,8 @@ async function guardarTipoDocumento(id) {
       if (idx !== -1) lista.splice(idx, 1, nuevoTipo); else lista.push(nuevoTipo);
     }
 
-    await logAudit('update', 'documentos', String(_docsEmpId), 'Cambió el tipo de documento de "' + tipoAnterior + '" a "' + nuevoTipo + '"');
-    showToast('✓ Tipo de documento actualizado');
+    await logAudit('update', 'documentos', String(_docsEmpId), 'Cambió el nombre del adjunto de "' + tipoAnterior + '" a "' + nuevoTipo + '"');
+    showToast('✓ Nombre del adjunto actualizado');
     loadDocumentos();
   } finally {
     hideBlockingOverlay();
@@ -5828,13 +5928,13 @@ function _construirWorkbookEmpleados(source, esFiltrado) {
     H('clientes') + ' *', 'NOMBRE COMPLETO *', 'CEDULA *', 'FECHA DE INGRESO *',
     'FECHA DE RETIRO', H('motivosRetiro'), 'ESTADO *', 'GENERO *',
     'FECHA DE NACIMIENTO *', 'EDAD', H('escolaridad'), 'DIRECCION',
-    'CELULAR', H('cargos') + ' *', H('municipios'), H('departamentos'),
+    'CELULAR', H('cargos') + ' *', H('lugaresTrabajo'), H('municipios'), H('departamentos'),
     'HORAS LABORALES', 'SALARIO', 'AUX. DE TRANSPORTE', H('eps'), H('afp'), H('arl'),
     H('nivelesRiesgo'), 'CORREO', 'INCAPACITADO', 'TALLA CAMISA', 'TALLA PANTALON', 'TALLA ZAPATOS', 'NOTAS'
   ];
   const FIELDS = [
     'cliente','nombre','cedula','ingreso','retiro','motivo','estado','genero',
-    'nacimiento','edad','escolaridad','direccion','celular','cargo',
+    'nacimiento','edad','escolaridad','direccion','celular','cargo','lugar_trabajo',
     'municipio','departamento','horas','salario','aux_transporte','eps','afp','arl',
     'riesgo','correo','incapacitado','talla_camisa','talla_pantalon','talla_zapatos','notas'
   ];
@@ -5856,7 +5956,7 @@ function _construirWorkbookEmpleados(source, esFiltrado) {
   ws['!cols'] = [
     {wch:38},{wch:32},{wch:14},{wch:16},{wch:16},{wch:28},
     {wch:10},{wch:12},{wch:16},{wch:6}, {wch:20},{wch:32},
-    {wch:14},{wch:34},{wch:18},{wch:18},{wch:14},{wch:12},
+    {wch:14},{wch:34},{wch:28},{wch:18},{wch:18},{wch:14},{wch:12},
     {wch:16},{wch:20},{wch:16},{wch:18},{wch:14},{wch:26},
     {wch:12},{wch:14},{wch:14},{wch:14},{wch:36}
   ];
@@ -6192,6 +6292,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     _resetInactivity();
     await loadCatalogsFromDB();
     await cargarNombresCatalogos();
+    await cargarCentrosCosto();
     await cargarFirmaRepresentante();
     await loadNovedadesFromDB();
     await loadCorreccionesIgnoradas();
@@ -6534,6 +6635,7 @@ async function commitImport() {
       nombre:       row.nombre      ||'',
       estado,       cliente:     _norm(row.cliente, 'clientes'),
       cargo:        _norm(row.cargo, 'cargos'),       genero,
+      lugar_trabajo: _norm(row.lugar_trabajo, 'lugaresTrabajo'),
       ingreso:      row.ingreso     ||'',       retiro:  row.retiro  ||'',
       motivo:       _norm(row.motivo, 'motivosRetiro'), nacimiento: nac,
       edad,         escolaridad: _norm(row.escolaridad, 'escolaridad'),
@@ -6653,6 +6755,8 @@ const CATALOGS = {
   clientes:[
     'Administración', 'Camiones', 'Canoa', 'Maquinaria amarilla'
   ],
+  // Fincas y sedes donde trabaja cada persona: el administrador las agrega en Catálogos
+  lugaresTrabajo:[],
   cargos:[],
   eps:[
     'A.i.c.', 'Aliansalud', 'Ambuq ars', 'Anas wayuu', 'Ars convida',
@@ -6918,7 +7022,7 @@ const CATALOGS = {
   ],
 };
 const CATALOG_TITLES = {
-  clientes:'Proyectos', cargos:'Cargos', eps:'EPS',
+  clientes:'Proyectos', lugaresTrabajo:'Lugares de trabajo', cargos:'Cargos', eps:'EPS',
   afp:'AFP / Pensión', arl:'ARL', municipios:'Municipios',
   departamentos:'Departamentos', motivosRetiro:'Motivos de retiro',
   escolaridad:'Nivel de Escolaridad', tiposDocumento:'Tipos de documento',
@@ -6927,7 +7031,7 @@ const CATALOG_TITLES = {
 };
 // Nombre del campo que llena cada catálogo, en singular, como sale en el formulario y la ficha
 const CATALOG_CAMPOS = {
-  clientes:'Proyecto', cargos:'Cargo', eps:'EPS', afp:'AFP / Pensión', arl:'ARL',
+  clientes:'Proyecto', lugaresTrabajo:'Lugar de trabajo', cargos:'Cargo', eps:'EPS', afp:'AFP / Pensión', arl:'ARL',
   municipios:'Municipio de trabajo', departamentos:'Departamento', motivosRetiro:'Motivo de retiro',
   escolaridad:'Nivel de escolaridad', tiposDocumento:'Tipo de documento', nivelesRiesgo:'Nivel de riesgo',
   novedades_tipos:'Tipo de novedad', fondosCesantias:'Fondo de cesantías', tiposAdjunto:'Tipo de adjunto'
@@ -6936,7 +7040,7 @@ const CATALOG_CAMPOS = {
 const CATALOG_TITLES_FABRICA = Object.assign({}, CATALOG_TITLES);
 const CATALOG_CAMPOS_FABRICA = Object.assign({}, CATALOG_CAMPOS);
 const CATALOG_USAGE = {
-  clientes:{max:500},cargos:{max:2000},eps:{max:500},afp:{max:500},
+  clientes:{max:500},lugaresTrabajo:{max:500},cargos:{max:2000},eps:{max:500},afp:{max:500},
   arl:{max:500},municipios:{max:7991},departamentos:{max:7991},
   motivosRetiro:{max:7991},escolaridad:{max:7991},tiposDocumento:{max:7991},nivelesRiesgo:{max:7991},
   novedades_tipos:{max:50}, fondosCesantias:{max:50}
@@ -6961,6 +7065,7 @@ const _esFabrica = key => nombreCampo(key) === CATALOG_CAMPOS_FABRICA[key] && no
 const FRASES_CAMPO = {
   todosClientes:    () => _esFabrica('clientes') ? 'Todos los proyectos' : nombreCatalogo('clientes') + ': todos',
   todosCargos:      () => _esFabrica('cargos') ? 'Todos los cargos' : nombreCatalogo('cargos') + ': todos',
+  todosLugares:     () => _esFabrica('lugaresTrabajo') ? 'Todos los lugares de trabajo' : nombreCatalogo('lugaresTrabajo') + ': todos',
   trasladar:        () => _esFabrica('clientes') ? 'Trasladar a otro proyecto' : 'Cambiar de ' + nombreCampoMin('clientes'),
   trasladarTitulo:  () => _esFabrica('clientes') ? 'Trasladar empleados a otro proyecto' : 'Cambiar de ' + nombreCampoMin('clientes') + ' a los empleados',
   trasladarResumen: () => _esFabrica('clientes') ? 'pasarán al nuevo proyecto manteniendo todo su historial activo.'
@@ -6974,7 +7079,7 @@ const frase = clave => FRASES_CAMPO[clave] ? FRASES_CAMPO[clave]() : '';
 
 // Encabezado de un campo de catálogo en el Excel: el de siempre, o el nombre nuevo si se lo cambiaron
 const _ENCABEZADO_FABRICA = {
-  clientes:'PROYECTO', cargos:'CARGO', eps:'EPS', afp:'AFP', arl:'ARL',
+  clientes:'PROYECTO', lugaresTrabajo:'LUGAR DE TRABAJO', cargos:'CARGO', eps:'EPS', afp:'AFP', arl:'ARL',
   municipios:'MUNICIPIO DE TRABAJO', departamentos:'DEPARTAMENTO', motivosRetiro:'MOTIVO DE RETIRO',
   escolaridad:'NIVEL DE ESCOLARIDAD', nivelesRiesgo:'NIVEL DE RIESGO'
 };
@@ -7075,11 +7180,80 @@ async function restaurarNombreCatalogo() {
     showToast('&#10003; El catálogo volvió a su nombre original');
   }
 }
+
+// ── Datos para los certificados de cada centro de costo (Catálogos) ───────────────
+// Solo el administrador de RH; quedan en centros_costo. Si el centro de costo todavía no tiene datos,
+// la ventana sale llena con los de EMPRESA, para cambiar solo lo que haga falta.
+let _centroEditando = null;
+function abrirDatosCentro(idx) {
+  if (!isAdmin()) return;
+  const centro = (CATALOGS.clientes || [])[idx];
+  if (centro == null) return;
+  _centroEditando = String(centro);
+  const E = empleadorDe({ cliente: _centroEditando });
+  document.getElementById('centro-costo-titulo').textContent = _centroEditando;
+  document.querySelectorAll('input[name="centro-tipo"]').forEach(r => { r.checked = r.value === (E.persona ? 'persona' : 'empresa'); });
+  const poner = (id, v) => { document.getElementById(id).value = v || ''; };
+  poner('centro-nombre', E.nombre);
+  poner('centro-nit', E.nit);
+  poner('centro-representante', E.persona ? EMPRESA.representante : E.representante);
+  poner('centro-ciudad', E.ciudad);
+  poner('centro-celular', E.celular);
+  poner('centro-direccion', E.pie.join(' · '));
+  poner('centro-correo', E.correo);
+  _centroTipoCambio(true);
+  aplicarNombresCatalogos(document.getElementById('modal-centro-costo'));
+  document.getElementById('modal-centro-costo').style.display = 'flex';
+  document.getElementById('centro-nombre').focus();
+}
+// Empresa o persona natural: cambian los nombres de los campos, y la persona natural no lleva representante
+function _centroTipoCambio(alAbrir) {
+  const persona = document.querySelector('input[name="centro-tipo"]:checked')?.value === 'persona';
+  document.getElementById('centro-nombre-label').textContent = persona ? 'Nombre completo *' : 'Razón social *';
+  document.getElementById('centro-nit-label').textContent = persona ? 'NIT o cédula *' : 'NIT *';
+  document.getElementById('centro-representante-grupo').style.display = persona ? 'none' : '';
+  if (alAbrir) return;
+  // Si al pasar a persona natural todavía tiene los datos de la empresa, se sugiere el nombre de quien firma
+  const nombre = document.getElementById('centro-nombre'), nit = document.getElementById('centro-nit');
+  if (persona && _claveCentro(nombre.value) === _claveCentro(EMPRESA.nombre)) {
+    nombre.value = document.getElementById('centro-representante').value.trim() || EMPRESA.representante;
+    if (_claveCentro(nit.value) === _claveCentro(EMPRESA.nit)) nit.value = '';
+    nit.focus();
+  }
+}
+function cerrarDatosCentro() {
+  document.getElementById('modal-centro-costo').style.display = 'none';
+}
+async function guardarDatosCentro() {
+  if (!isAdmin() || !_centroEditando) return;
+  const v = id => document.getElementById(id).value.replace(/\s+/g, ' ').trim();
+  const persona = document.querySelector('input[name="centro-tipo"]:checked')?.value === 'persona';
+  const fila = {
+    centro: (_datosCentro(_centroEditando) || {}).centro || _centroEditando,   // si ya tenía datos, con la misma llave
+    tipo: persona ? 'persona' : 'empresa',
+    nombre: v('centro-nombre'), nit: v('centro-nit'), representante: persona ? '' : v('centro-representante'),
+    ciudad: v('centro-ciudad'), celular: v('centro-celular'), direccion: v('centro-direccion'), correo: v('centro-correo'),
+    updated_at: new Date().toISOString()
+  };
+  if (!fila.nombre) { showToast(persona ? 'Escribe el nombre completo' : 'Escribe la razón social'); return; }
+  if (!fila.nit) { showToast('Escribe el NIT'); return; }
+  const { error } = await sb.from('centros_costo').upsert(fila, { onConflict: 'centro' });
+  if (error) { showToast('No se pudieron guardar los datos: ' + escapeHTML(error.message)); return; }
+  const i = CENTROS_COSTO.findIndex(c => c.centro === fila.centro);
+  if (i >= 0) CENTROS_COSTO[i] = Object.assign({}, CENTROS_COSTO[i], fila); else CENTROS_COSTO.push(fila);
+  try {
+    await logAudit('update', 'catalogos', 'centros_costo', 'Guardó los datos para certificados de «' + _centroEditando + '»: '
+      + fila.nombre + ' · NIT ' + fila.nit + (persona ? ' (persona natural)' : ''));
+  } catch (e) {}
+  cerrarDatosCentro();
+  if (activeCatalog === 'clientes') renderCatalogItems('clientes', document.getElementById('catalogSearch')?.value || '', _catPage);
+  showToast('&#10003; Los certificados de «' + escapeHTML(_centroEditando) + '» salen a nombre de ' + escapeHTML(fila.nombre));
+}
 let activeCatalog = 'clientes';
 
 function initCatalogs(){
   // Populate form selects from catalogs
-  const selMap = {f_cliente:'clientes',f_cargo:'cargos',f_eps:'eps',f_afp:'afp',f_arl:'arl',f_municipio:'municipios'};
+  const selMap = {f_cliente:'clientes',f_lugar_trabajo:'lugaresTrabajo',f_cargo:'cargos',f_eps:'eps',f_afp:'afp',f_arl:'arl',f_municipio:'municipios'};
   Object.entries(selMap).forEach(([elId, catKey])=>{
     const el = document.getElementById(elId);
     if(!el) return;
@@ -7151,7 +7325,7 @@ function refreshCatalogIfVisible(){
 
 // Mapeo de clave de catálogo → campo del empleado para calcular usos reales
 const CATALOG_FIELD_MAP = {
-  clientes:'cliente', cargos:'cargo', eps:'eps', afp:'afp', arl:'arl',
+  clientes:'cliente', lugaresTrabajo:'lugar_trabajo', cargos:'cargo', eps:'eps', afp:'afp', arl:'arl',
   municipios:'municipio', departamentos:'departamento', motivosRetiro:'motivo',
   escolaridad:'escolaridad', nivelesRiesgo:'riesgo'
 };
@@ -7198,7 +7372,8 @@ function renderCatalogItems(key, q, page) {
   const el       = document.getElementById('catalogItemsList');
 
   if (!filtered.length) {
-    el.innerHTML = `<div class="empty-state" style="padding:24px"><p>Sin resultados para &ldquo;${escapeHTML(q)}&rdquo;</p></div>`;
+    el.innerHTML = `<div class="empty-state" style="padding:24px"><p>${items.length ? 'Sin resultados para &ldquo;' + escapeHTML(q) + '&rdquo;'
+      : 'Todavía no hay nada en este catálogo. Agrega el primero con «+ Agregar».'}</p></div>`;
     _catPage = 1;
     return;
   }
@@ -7220,6 +7395,7 @@ function renderCatalogItems(key, q, page) {
   // Tipos de novedad se cuentan desde NOVEDADES, el resto desde EMPLEADOS.
   const esNovedades = key === 'novedades_tipos';
   const esAdjuntos  = key === 'tiposAdjunto';
+  const esCentros   = key === 'clientes';   // los centros de costo llevan los datos de su empleador
   const unidad      = esNovedades ? 'novedades' : esAdjuntos ? 'documentos' : 'empleados';
   const usageMap = getCatalogUsage(key);
   const hasData  = esNovedades ? NOVEDADES.length > 0 : esAdjuntos ? Object.keys(_adjuntoUsage).length > 0 : EMPLEADOS.length > 0;
@@ -7232,11 +7408,17 @@ function renderCatalogItems(key, q, page) {
       ? `${usage} uso${usage!==1?'s':''} en ${unidad}`
       : (hasData ? 'Sin usos registrados' : (esAdjuntos ? '&#8212; sin documentos adjuntados a\xfan' : esNovedades ? '&#8212; sin novedades registradas a\xfan' : '&#8212; sin datos importados a\xfan'));
     const realIdx  = items.indexOf(item);
+    // En los centros de costo: con qué empleador salen sus certificados
+    const datos = esCentros ? _datosCentro(itemStr) : null;
+    const lineaCentro = !esCentros ? '' : '<div class="catalog-item-empleador">' + (datos && String(datos.nombre || '').trim()
+      ? 'Certifica: ' + escapeHTML(datos.nombre) + (datos.nit ? ' · NIT ' + escapeHTML(datos.nit) : '') + (datos.tipo === 'persona' ? ' · persona natural' : '')
+      : 'Sin datos para certificados: sale con los de ' + escapeHTML(EMPRESA.nombre)) + '</div>';
 
     return `<div class="catalog-item-row" id="cat-row-${i}">
-      <div class="catalog-item-name">${escapeHTML(itemStr)}</div>
+      <div class="catalog-item-name">${escapeHTML(itemStr)}${lineaCentro}</div>
       <div class="catalog-item-meta" style="${usage>0?'color:var(--blue)':''}">${usageTxt}</div>
       <div class="catalog-item-actions">
+        ${esCentros && isAdmin() ? `<button class="btn btn-ghost btn-sm" onclick="abrirDatosCentro(${realIdx})" title="Nombre, NIT y demás datos con los que salen sus certificados">Datos para certificados</button>` : ''}
         <button class="btn-icon" onclick="editCatalogInline(${realIdx},'${key}')" title="Editar">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
@@ -7272,7 +7454,12 @@ function renderCatalogItems(key, q, page) {
     </div>`;
   }
 
-  el.innerHTML = rows + pager;
+  // En los centros de costo, una nota para el administrador sobre los datos de los certificados
+  const notaCentros = esCentros && isAdmin()
+    ? '<div class="catalog-nota-centros">Cada ' + escapeHTML(nombreCampoMin('clientes')) + ' certifica a nombre de su empleador (una empresa o una persona natural). '
+      + 'Con «Datos para certificados» pones el nombre, el NIT y lo demás que sale en los certificados y las cartas.</div>'
+    : '';
+  el.innerHTML = notaCentros + rows + pager;
 }
 
 function _catGoPage(p) {
@@ -9401,11 +9588,14 @@ function _hvBuildBodyHTML(emp) {
 
   const hoy = new Date();
   const fechaGen = String(hoy.getDate()).padStart(2,'0')+'/'+String(hoy.getMonth()+1).padStart(2,'0')+'/'+hoy.getFullYear();
+  // Con un solo empleador se nombra; si trabajó con los dos, cada fila ya dice su centro de costo
+  const empleadores = [...new Set(contratos.map(c => empleadorDe(c).nombre))];
 
   return headerHTML
     + '<div style="font-weight:700;font-size:12.5px;margin-bottom:6px;color:#20449a">1. DATOS PERSONALES</div>'
     + '<table style="width:100%;border-collapse:collapse;margin-bottom:18px">'+datosPersonales+'</table>'
-    + '<div style="font-weight:700;font-size:12.5px;margin-bottom:6px;color:#20449a">2. EXPERIENCIA LABORAL EN ' + escapeHTML(EMPRESA.nombre.toUpperCase()) + '</div>'
+    + '<div style="font-weight:700;font-size:12.5px;margin-bottom:6px;color:#20449a">2. EXPERIENCIA LABORAL'
+    +   (empleadores.length === 1 ? ' EN ' + escapeHTML(empleadores[0].toUpperCase()) : '') + '</div>'
     + '<table style="width:100%;border-collapse:collapse;margin-bottom:18px">'
     +   '<thead><tr>'
     +     '<td '+tdL+'>'+escapeHTML(nombreCampo('clientes'))+'</td><td '+tdL+'>Cargo</td><td '+tdL+'>Período</td><td '+tdL+'>Estado / Motivo de retiro</td>'
@@ -10433,6 +10623,7 @@ async function doLogin() {
   btn.textContent = 'Cargando datos...';
   await loadCatalogsFromDB();
   await cargarNombresCatalogos();
+  await cargarCentrosCosto();
   await cargarFirmaRepresentante();
   await loadNovedadesFromDB();
   await loadCorreccionesIgnoradas();
@@ -10670,6 +10861,7 @@ const HEADER_MAP = {
   'DIRECCI\xD3N':'direccion','DIRECCION':'direccion',
   'CELULAR':'celular','CARGO':'cargo',
   'MUNICIPIO DE TRABAJO':'municipio','MUNICIPIO':'municipio',
+  'LUGAR DE TRABAJO':'lugar_trabajo','FINCA':'lugar_trabajo',
   'DEPARTAMENTO (GEO\xC1FICO)':'departamento',
   'DEPARTAMENTO (GEOGR\xC1FICO)':'departamento',
   'DEPARTAMENTO':'departamento',
@@ -11346,7 +11538,7 @@ function downloadTemplate(){
   ws['A1'] = { t:'s', v:'Plantilla de empleados · ' + EMPRESA.nombre + ' — llene desde la fila 3; las columnas con * son obligatorias' };
   XLSX.utils.sheet_add_aoa(ws, [[
     'Camiones', 'Nombre Apellido Apellido', '1000000000', '01/10/2026', '', '', 'ACTIVO', 'MASCULINO',
-    '15/05/1990', '', 'Bachiller', 'Calle 1 # 2-3', '3000000000', 'Conductor de tractomula', 'Monteria', 'Córdoba',
+    '15/05/1990', '', 'Bachiller', 'Calle 1 # 2-3', '3000000000', 'Conductor de tractomula', '', 'Monteria', 'Córdoba',
     '08 HORAS', '$2.100.000', '', 'Nueva eps', 'Porvenir', 'Positiva compañía de seguros', '4', '', 'No', '', '', '',
     'Fila de ejemplo: bórrela antes de importar'
   ]], { origin: 'A3' });
@@ -11359,7 +11551,7 @@ function downloadTemplate(){
     ['2. Las columnas con * son obligatorias.'],
     ['3. Fechas en formato DD/MM/AAAA (por ejemplo 01/10/2026).'],
     ['4. ESTADO: ACTIVO o INACTIVO. GÉNERO: FEMENINO o MASCULINO.'],
-    ['5. ' + ['clientes','cargos','eps','afp','arl','municipios'].map(encabezadoCampo).join(', ') + ' y ' + encabezadoCampo('escolaridad')
+    ['5. ' + ['clientes','cargos','lugaresTrabajo','eps','afp','arl','municipios'].map(encabezadoCampo).join(', ') + ' y ' + encabezadoCampo('escolaridad')
       + ' deben existir en Catálogos (mayúsculas y tildes no importan).'],
     ['6. HORAS LABORALES: 04 HORAS, 08 HORAS, 12 HORAS o TURNOS.'],
     ['7. TALLA CAMISA, TALLA PANTALON y TALLA ZAPATOS: opcionales y libres (se escribe la talla tal como se usa).'],
@@ -11402,11 +11594,12 @@ let masEditPage = 1;
 const MASEDIT_PAGE_SIZE = 12;
 const _masEditSelected = new Set();
 
-// Los 9 campos de catálogo disponibles como filtro en Edición Masiva (reutiliza
+// Los campos de catálogo disponibles como filtro en Edición Masiva (reutiliza
 // _SIM_TYPE_CONFIG de "Nombres similares" para el campo/catálogo/etiqueta de cada uno).
 const _MASEDIT_FILTRO_CAMPOS = [
   { type:'CLIENTE',      selId:'masEditFilterCliente',      get placeholder(){ return frase('todosClientes'); } },
   { type:'CARGO',        selId:'masEditFilterCargo',        get placeholder(){ return frase('todosCargos'); } },
+  { type:'LUGAR',        selId:'masEditFilterLugar',        get placeholder(){ return frase('todosLugares'); } },
   { type:'EPS',          selId:'masEditFilterEps',          placeholder:'Todas las EPS' },
   { type:'AFP',          selId:'masEditFilterAfp',          placeholder:'Todas las AFP' },
   { type:'ARL',          selId:'masEditFilterArl',          placeholder:'Todas las ARL' },
@@ -11434,19 +11627,15 @@ function initMasEditFilters(){
           + '</optgroup>' : '');
     if(prev === FILTRO_FUERA_CATALOGO || catalogo.includes(prev) || fuera.some(([v])=>v===prev)) el.value = prev;
   });
-  // Filtro de tipo de adjunto (caso especial: viene de documentos_empleados, no de un campo de EMPLEADOS)
+  // Filtro de adjunto (caso especial: viene de documentos_empleados, no de un campo de EMPLEADOS).
+  // Los nombres se escriben libres en la ficha, así que se listan los que hay, con cuántos documentos.
   const elAdj = document.getElementById('masEditFilterAdjunto');
   if(elAdj){
-    const catalogoAdj = [...(CATALOGS.tiposAdjunto||[])].sort();
     const prevAdj = elAdj.value;
-    const fueraAdj = _valoresFueraCatalogoAdjuntos();
+    const nombresAdj = _nombresDeAdjuntos();
     elAdj.innerHTML = `<option value="">Todo tipo de adjunto</option>`
-      + `<option value="${FILTRO_FUERA_CATALOGO}">⚠ Fuera del catálogo (todos)</option>`
-      + catalogoAdj.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('')
-      + (fueraAdj.length ? '<optgroup label="⚠ Fuera del catálogo — por valor">'
-          + fueraAdj.map(([v,n])=>`<option value="${escapeHTML(v)}">${escapeHTML(v)} (${n})</option>`).join('')
-          + '</optgroup>' : '');
-    if(prevAdj === FILTRO_FUERA_CATALOGO || catalogoAdj.includes(prevAdj) || fueraAdj.some(([v])=>v===prevAdj)) elAdj.value = prevAdj;
+      + nombresAdj.map(([v,n])=>`<option value="${escapeHTML(v)}">${escapeHTML(v)} (${n})</option>`).join('');
+    if(nombresAdj.some(([v])=>v===prevAdj)) elAdj.value = prevAdj;
   }
 }
 
@@ -11471,7 +11660,7 @@ function filterMasEdit(){
       if(f.valor && !_matchFiltroCatalogo(e[f.campo], f.valor, CATALOGS[f.catKey]||[])) return false;
     }
     if(q){
-      const hay = _normTexto((e.nombre||'')+' '+(e.cedula||'')+' '+(e.cliente||'')+' '+(e.cargo||''));
+      const hay = _normTexto((e.nombre||'')+' '+(e.cedula||'')+' '+(e.cliente||'')+' '+(e.cargo||'')+' '+(e.lugar_trabajo||''));
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -11483,45 +11672,40 @@ function filterMasEdit(){
   _actualizarBannerRenombrarAdjunto();
 }
 
-// Muestra el banner de "renombrar en bloque" solo cuando el filtro de Adjuntos tiene
-// seleccionado un valor puntual fuera de catálogo (no el catálogo, no "(todos)").
+// Con un nombre de adjunto elegido en el filtro, ofrece cambiarlo de una vez en todos los
+// documentos que lo llevan (por ejemplo, para unir «Cedula» con «Cédula de ciudadanía»).
 function _actualizarBannerRenombrarAdjunto(){
   const banner = document.getElementById('masEditAdjuntoRenombrar');
   const sel = document.getElementById('masEditFilterAdjunto');
   if(!banner || !sel) return;
   const valor = sel.value;
-  const catalogo = CATALOGS.tiposAdjunto || [];
-  const esValorPuntualFueraCatalogo = valor && valor !== FILTRO_FUERA_CATALOGO && !catalogo.includes(valor);
-  if(!esValorPuntualFueraCatalogo){ banner.style.display = 'none'; return; }
+  if(!valor){ banner.style.display = 'none'; return; }
 
-  const fuera = _valoresFueraCatalogoAdjuntos();
-  const entrada = fuera.find(([v])=>v===valor);
+  const entrada = _nombresDeAdjuntos().find(([v])=>v===valor);
   const n = entrada ? entrada[1] : 0;
   document.getElementById('masEditAdjuntoRenombrarTexto').textContent =
-    `⚠ ${n} documento${n!==1?'s':''} con el tipo "${valor}" — corrígelo de una sola vez:`;
+    `${n} documento${n!==1?'s':''} con el nombre "${valor}". Para cambiarlo en todos de una vez, escribe el nombre nuevo:`;
   const destino = document.getElementById('masEditAdjuntoNuevoTipo');
-  destino.innerHTML = '<option value="">Renombrar a...</option>'
-    + catalogo.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+  if(destino.dataset.de !== valor){ destino.value = ''; destino.dataset.de = valor; }
   banner.style.display = 'flex';
 }
 
-// Renombra en un solo UPDATE masivo TODOS los documentos que tengan exactamente el
-// valor fuera de catálogo seleccionado en el filtro, sin importar de qué empleado sean.
+// Cambia en un solo UPDATE masivo el nombre de TODOS los documentos que llevan exactamente
+// el nombre elegido en el filtro, sin importar de qué empleado sean.
 async function renombrarTipoAdjuntoMasivo(){
   const selViejo = document.getElementById('masEditFilterAdjunto');
-  const selNuevo = document.getElementById('masEditAdjuntoNuevoTipo');
+  const campoNuevo = document.getElementById('masEditAdjuntoNuevoTipo');
   const viejo = selViejo?.value;
-  const nuevo = selNuevo?.value;
-  if(!viejo || viejo === FILTRO_FUERA_CATALOGO){ showToast('Selecciona primero un tipo puntual fuera de catálogo'); return; }
-  if(!nuevo){ showToast('Selecciona a qué tipo del catálogo quieres renombrarlo'); return; }
-  if(nuevo === viejo){ showToast('Ese ya es el tipo actual'); return; }
+  const nuevo = _nombreAdjunto(campoNuevo?.value);
+  if(!viejo){ showToast('Elige primero en el filtro el nombre de adjunto que quieres cambiar'); return; }
+  if(!nuevo){ showToast('Escribe el nombre nuevo'); campoNuevo?.focus(); return; }
+  if(nuevo === viejo){ showToast('Ese ya es el nombre actual'); return; }
 
-  const fuera = _valoresFueraCatalogoAdjuntos();
-  const entrada = fuera.find(([v])=>v===viejo);
+  const entrada = _nombresDeAdjuntos().find(([v])=>v===viejo);
   const n = entrada ? entrada[1] : 0;
-  if(!confirm(`¿Renombrar TODOS los documentos con tipo "${viejo}" a "${nuevo}"?\n\nEsto afecta ${n} documento${n!==1?'s':''} en total, de todos los empleados. No se puede deshacer.`)) return;
+  if(!confirm(`¿Cambiar el nombre de TODOS los documentos "${viejo}" a "${nuevo}"?\n\nEsto afecta ${n} documento${n!==1?'s':''} en total, de todos los empleados. No se puede deshacer.`)) return;
 
-  showBlockingOverlay('Renombrando documentos...');
+  showBlockingOverlay('Cambiando el nombre de los documentos...');
   try{
     const { data, error } = await sb.from('documentos_empleados').update({ tipo: nuevo }).eq('tipo', viejo).select('id');
     if(error){ showToast('Error: ' + error.message); return; }
@@ -11532,9 +11716,10 @@ async function renombrarTipoAdjuntoMasivo(){
       for(let i=0;i<lista.length;i++){ if(lista[i]===viejo) lista[i]=nuevo; }
     });
 
-    await logAudit('update', 'documentos', '', `Renombró en bloque el tipo de adjunto "${viejo}" a "${nuevo}" (${data.length} documento${data.length!==1?'s':''})`);
-    showToast(`✓ ${data.length} documento${data.length!==1?'s':''} renombrado${data.length!==1?'s':''} a "${nuevo}"`);
+    await logAudit('update', 'documentos', '', `Cambió en bloque el nombre de adjunto "${viejo}" a "${nuevo}" (${data.length} documento${data.length!==1?'s':''})`);
+    showToast(`✓ ${data.length} documento${data.length!==1?'s':''} ahora se llama${data.length!==1?'n':''} "${escapeHTML(nuevo)}"`);
     selViejo.value = '';
+    campoNuevo.value = '';
     initMasEditFilters();
     filterMasEdit();
   } finally {
@@ -11681,6 +11866,7 @@ function limpiarMasEditSeleccion(){
 const _MASEDIT_CAMPOS = [
   { campo:'cliente',      selId:'masedit-cliente',      catKey:'clientes',      get label(){ return nombreCampo('clientes'); } },
   { campo:'cargo',        selId:'masedit-cargo',        catKey:'cargos',        label:'Cargo' },
+  { campo:'lugar_trabajo', selId:'masedit-lugar',       catKey:'lugaresTrabajo', get label(){ return nombreCampo('lugaresTrabajo'); } },
   { campo:'eps',          selId:'masedit-eps',          catKey:'eps',           label:'EPS' },
   { campo:'afp',          selId:'masedit-afp',          catKey:'afp',           label:'AFP' },
   { campo:'arl',          selId:'masedit-arl',          catKey:'arl',           label:'ARL' },
@@ -12113,6 +12299,7 @@ async function adoptarCedula(idReferencia, nameKey) {
 const _SIM_TYPE_CONFIG = {
   CLIENTE:      { campo:'cliente',      campoLabel:'cliente',          campoLabelPlural:'clientes',             catKey:'clientes' },
   CARGO:        { campo:'cargo',        campoLabel:'cargo',            campoLabelPlural:'cargos',               catKey:'cargos' },
+  LUGAR:        { campo:'lugar_trabajo', campoLabel:'lugar de trabajo', campoLabelPlural:'lugares de trabajo',  catKey:'lugaresTrabajo' },
   EPS:          { campo:'eps',          campoLabel:'EPS',              campoLabelPlural:'EPS',                  catKey:'eps' },
   AFP:          { campo:'afp',          campoLabel:'AFP',              campoLabelPlural:'AFP',                  catKey:'afp' },
   ARL:          { campo:'arl',          campoLabel:'ARL',              campoLabelPlural:'ARL',                  catKey:'arl' },
@@ -12557,7 +12744,7 @@ function buildDuplicados() {
     const infoSim = '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">'
       + filteredSim.length+' sugerencias pendientes'+(ignorados?' &mdash; '+ignorados+' ignoradas en esta sesi\xf3n':'')+'</div>';
 
-    const _simColorByType = { CLIENTE:'blue', CARGO:'orange', EPS:'purple', AFP:'blue', ARL:'orange', MUNICIPIO:'purple', DEPARTAMENTO:'blue', ESCOLARIDAD:'orange', MOTIVO:'purple' };
+    const _simColorByType = { CLIENTE:'blue', CARGO:'orange', LUGAR:'blue', EPS:'purple', AFP:'blue', ARL:'orange', MUNICIPIO:'purple', DEPARTAMENTO:'blue', ESCOLARIDAD:'orange', MOTIVO:'purple' };
     elNames.innerHTML = infoSim
       + filteredSim.map(({type,group},_si)=>{
         const _simColor=_simColorByType[type]||'blue';
@@ -12716,7 +12903,7 @@ function _updateDupBadge(exact,possible,names){
 // ══════════════════════════════════════════════════════════════
 const COMBOBOX_MAP = {
   f_cliente:'clientes', f_cargo:'cargos', f_eps:'eps',
-  f_afp:'afp', f_arl:'arl', f_municipio:'municipios',
+  f_afp:'afp', f_arl:'arl', f_municipio:'municipios', f_lugar_trabajo:'lugaresTrabajo',
   f_motivo:'motivosRetiro',
   'nov-eps':'eps', 'nov-arl':'arl', 'eno-eps':'eps', 'eno-arl':'arl',
   // Edición Masiva (Corrección de Datos): sin buscador era fácil escoger por error una opción
@@ -12724,7 +12911,7 @@ const COMBOBOX_MAP = {
   // "Obra puente norte") sin darse cuenta, ya que se aplica a varios empleados a la vez.
   'masedit-cliente':'clientes', 'masedit-cargo':'cargos', 'masedit-eps':'eps',
   'masedit-afp':'afp', 'masedit-arl':'arl', 'masedit-municipio':'municipios',
-  'masedit-motivo':'motivosRetiro'
+  'masedit-lugar':'lugaresTrabajo', 'masedit-motivo':'motivosRetiro'
 };
 
 let _cbActiveDropdown = null;
@@ -13712,6 +13899,13 @@ function certSelectEmployee(id) {
   if (nm) nm.textContent = emp.nombre;
   const mt = document.getElementById('certEmpMeta');
   if (mt) mt.textContent = (emp.cargo||sinCampo('cargos')) + ' · ' + (emp.cliente||sinCampo('clientes')) + ' · CC ' + emp.cedula;
+  // A nombre de quién sale el documento: el empleador de su centro de costo
+  const ce = document.getElementById('certEmpEmpleador');
+  if (ce) {
+    const E = empleadorDe(emp);
+    ce.textContent = 'Sale a nombre de ' + E.nombre + (E.nit ? ' · NIT ' + E.nit : '')
+      + (E.deFabrica && isAdmin() ? ' — se cambia en Catálogos → ' + nombreCatalogo('clientes') + ' → «Datos para certificados»' : '');
+  }
   const ba = document.getElementById('certEmpBadge');
   if (ba) { ba.textContent = emp.estado; ba.className = 'badge ' + (emp.estado==='ACTIVO'?'badge-activo':'badge-inactivo'); }
 
@@ -13774,9 +13968,11 @@ function formatCOP(val) {
 function _certKeyIngreso(s) { const p = _dmy(s); return p ? (p.y*10000 + p.m*100 + p.d) : 0; }
 // Todos los contratos (registros) de la misma cédula, ordenados del más antiguo al más
 // reciente por fecha de ingreso — para no confundir el orden si se ordenara alfabético.
+// Solo los del mismo empleador: cada centro de costo certifica a nombre del suyo.
 function _certTodosContratos(emp) {
   if (!emp || !emp.cedula) return [emp];
-  const contratos = EMPLEADOS.filter(e => e.cedula === emp.cedula);
+  const empleador = _claveEmpleador(emp);
+  const contratos = EMPLEADOS.filter(e => e.cedula === emp.cedula && _claveEmpleador(e) === empleador);
   return contratos.length ? contratos.sort((a,b) => _certKeyIngreso(a.ingreso) - _certKeyIngreso(b.ingreso)) : [emp];
 }
 function _certUltimoContrato(emp) {
@@ -13995,16 +14191,55 @@ function _certDdmmaaaaAIso(str) {
   return p.y + '-' + mm + '-' + dd;
 }
 
-// Datos de la empresa en los documentos (ver EMPRESA): lo que no se ha configurado no se imprime
-function _empresaNitComa() { return (EMPRESA.nit ? ' Nit: ' + escapeHTML(EMPRESA.nit) : '') + ','; }
-function _empresaCiudad()  { return EMPRESA.ciudad || '____________________'; }
+// ── Empleador de cada centro de costo ────────────────────────────────────────────
+// Cada centro de costo certifica a nombre de su empleador: una empresa (SINUGRAVAS S.A.S.) o una
+// persona natural. Los datos los guarda el administrador en Catálogos, con «Datos para certificados»
+// (tabla centros_costo). Un centro de costo sin datos sale con los de EMPRESA.
+let CENTROS_COSTO = [];
+async function cargarCentrosCosto() {
+  try {
+    const { data, error } = await sb.from('centros_costo').select('*');
+    CENTROS_COSTO = !error && Array.isArray(data) ? data : [];
+  } catch (e) { CENTROS_COSTO = []; }   // sin la tabla todavía: todo sale con los datos de EMPRESA
+}
+const _claveCentro = v => removeAccents(String(v || '').replace(/\s+/g, ' ').trim().toUpperCase());
+function _datosCentro(centro) {
+  const k = _claveCentro(centro);
+  return (k && CENTROS_COSTO.find(c => _claveCentro(c.centro) === k)) || null;
+}
+// Con quién sale un documento del empleado (certificado, cartas, hoja de vida). Lo vacío no se imprime.
+function empleadorDe(emp) {
+  const d = _datosCentro(emp && emp.cliente);
+  const t = v => String(v || '').trim();
+  if (d && t(d.nombre)) {
+    const persona = d.tipo === 'persona';
+    return { persona, nombre: t(d.nombre), nit: t(d.nit), representante: persona ? t(d.nombre) : t(d.representante),
+             ciudad: t(d.ciudad), celular: t(d.celular), correo: t(d.correo), pie: t(d.direccion) ? [t(d.direccion)] : [],
+             deFabrica: false };
+  }
+  return { persona: false, nombre: EMPRESA.nombre, nit: EMPRESA.nit, representante: EMPRESA.representante,
+           ciudad: EMPRESA.ciudad, celular: EMPRESA.celularRepresentante, correo: EMPRESA.correo, pie: EMPRESA.sedes.slice(),
+           deFabrica: true };
+}
+// Dos registros son del mismo empleador si salen con el mismo nombre y el mismo NIT
+function _claveEmpleador(emp) { const E = empleadorDe(emp); return _claveCentro(E.nombre) + '|' + _claveCentro(E.nit); }
+function _nitComa(E)  { return (E.nit ? ' Nit: ' + escapeHTML(E.nit) : '') + ','; }
+function _ciudadDe(E) { return E.ciudad || '____________________'; }
 
-// Encabezado oficial (logo + servicios en azul) — compartido entre certificado y cartas
-function _certHeaderHTML() {
+// Encabezado oficial, compartido entre certificado y cartas. Empresa: logo + NIT + servicios en azul.
+// Persona natural: su nombre y su NIT, sin el logo de la empresa.
+function _certHeaderHTML(E) {
+  if (E.persona) {
+    return '<div style="text-align:center;margin-bottom:18px">'
+      + '<div style="font-size:15px;font-weight:700;color:#1e293b;letter-spacing:.5px">' + escapeHTML(E.nombre.toUpperCase()) + '</div>'
+      + (E.nit ? '<div style="font-size:11px;font-weight:700;color:#1e293b;margin-top:2px">NIT: ' + escapeHTML(E.nit) + '</div>' : '')
+      + '</div>'
+      + '<hr style="border:none;border-top:1px solid #cbd5e1;margin:0 0 18px">';
+  }
   return '<div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:18px">'
     + '<div style="flex-shrink:0;text-align:center">'
     + (typeof LOGO_B64!=='undefined'&&LOGO_B64 ? '<img src="'+LOGO_B64+'" style="height:80px;width:auto">' : '')
-    + (EMPRESA.nit ? '<div style="font-size:10px;font-weight:700;color:#1e293b;margin-top:2px">NIT: ' + escapeHTML(EMPRESA.nit) + '</div>' : '')
+    + (E.nit ? '<div style="font-size:10px;font-weight:700;color:#1e293b;margin-top:2px">NIT: ' + escapeHTML(E.nit) + '</div>' : '')
     + '</div>'
     + '<div style="flex:1;text-align:center;font-size:8px;font-weight:700;color:#20449a;line-height:1.55;padding-top:4px">'
     + EMPRESA.servicios.map(s => escapeHTML(s)).join('<br>')
@@ -14019,12 +14254,13 @@ function _certRenderCesantias(tipo) {
   const parcial   = (tipo === 'cesantias_parcial');
   const fechaIso  = document.getElementById('certFecha')?.value || new Date().toISOString().slice(0,10);
   const fechaTxt  = fechaLargaISO(fechaIso);
-  const firma     = (EMPRESA.representante || '').trim().toUpperCase();   // siempre firma el representante legal
+  const E         = empleadorDe(emp);   // la empresa o la persona natural de su centro de costo
+  const firma     = (E.representante || '').toUpperCase();   // firma el representante legal, o el mismo empleador si es persona natural
   const fondo     = (document.getElementById('certFondo')?.value || '').trim();
   const fondoTxt  = fondo || '____________________';
 
   // Encabezado oficial (logo + servicios en azul), igual que el certificado laboral
-  const headerHTML = _certHeaderHTML();
+  const headerHTML = _certHeaderHTML(E);
 
   const firmaImg = (typeof FIRMA_GERENTE_B64!=='undefined'&&FIRMA_GERENTE_B64)
     ? '<img src="'+FIRMA_GERENTE_B64+'" alt="Firma" style="height:70px;width:auto;display:block;margin:2px 0 0">'
@@ -14035,8 +14271,11 @@ function _certRenderCesantias(tipo) {
     + '<p style="margin-bottom:4px">Cordialmente,</p>'
     + firmaImg
     + '<p style="font-weight:700;margin:2px 0 0">' + escapeHTML(firma) + '<br>'
-    + (EMPRESA.cedulaRepresentante ? 'CC ' + escapeHTML(EMPRESA.cedulaRepresentante) + '<br>' : '')
-    + 'Representante Legal<br>' + escapeHTML(EMPRESA.nombre) + '</p>'
+    + (E.persona
+        ? (E.nit ? 'NIT ' + escapeHTML(E.nit) + '<br>' : '') + 'Empleador'
+        : (EMPRESA.cedulaRepresentante ? 'CC ' + escapeHTML(EMPRESA.cedulaRepresentante) + '<br>' : '')
+          + 'Representante Legal<br>' + escapeHTML(E.nombre))
+    + '</p>'
     + '</div>';
 
   let cuerpo = '';
@@ -14045,15 +14284,16 @@ function _certRenderCesantias(tipo) {
     const hastaIso = document.getElementById('certFechaHasta')?.value || '';
     const hastaTxt = hastaIso ? fechaLargaISO(hastaIso) : '____________________';
     cuerpo =
-      '<p style="font-size:12.5px;margin-bottom:20px">' + escapeHTML(_empresaCiudad()) + ', ' + fechaTxt + '</p>'
+      '<p style="font-size:12.5px;margin-bottom:20px">' + escapeHTML(_ciudadDe(E)) + ', ' + fechaTxt + '</p>'
       + '<p style="font-size:12.5px;margin-bottom:2px">Se\xf1ores:</p>'
       + '<p style="font-size:12.5px;font-weight:700;margin-bottom:2px">FONDO DE CESANT\xcdAS ' + escapeHTML(fondoTxt) + '</p>'
       + '<p style="font-size:12.5px;margin-bottom:18px">Ciudad</p>'
       + '<p style="font-size:12.5px;margin-bottom:18px">Cordial Saludo:</p>'
       + '<p style="font-size:12.5px;line-height:1.8;text-align:justify;margin-bottom:16px">'
-      + 'Por medio del presente, nos permitimos autorizar el retiro <strong>total</strong> de las cesant\xedas consignadas a nombre de '
+      + 'Por medio del presente, ' + (E.persona ? 'me permito' : 'nos permitimos') + ' autorizar el retiro <strong>total</strong> de las cesant\xedas consignadas a nombre de '
       + '<strong>' + escapeHTML(emp.nombre||'') + '</strong>, identificado con c\xe9dula No. <strong>' + escapeHTML(emp.cedula||'') + '</strong>, '
-      + 'quien labor\xf3 bajo nuestra raz\xf3n social ' + escapeHTML(EMPRESA.nombre) + _empresaNitComa() + ' hasta el <strong>' + hastaTxt + '</strong>.</p>';
+      + (E.persona ? 'quien labor\xf3 para el suscrito empleador ' : 'quien labor\xf3 bajo nuestra raz\xf3n social ')
+      + escapeHTML(E.nombre) + _nitComa(E) + ' hasta el <strong>' + hastaTxt + '</strong>.</p>';
   } else {
     // ── RETIRO PARCIAL ──
     const valor    = (document.getElementById('certValorRetiro')?.value || '').trim();
@@ -14061,14 +14301,17 @@ function _certRenderCesantias(tipo) {
     const concepto = (document.getElementById('certConcepto')?.value || '').trim() || '____________________';
     const girarA   = (document.getElementById('certGirarA')?.value || '').trim() || (emp.nombre||'');
     cuerpo =
-      '<p style="font-size:12.5px;margin-bottom:20px">' + escapeHTML(_empresaCiudad()) + ', ' + fechaTxt + '</p>'
+      '<p style="font-size:12.5px;margin-bottom:20px">' + escapeHTML(_ciudadDe(E)) + ', ' + fechaTxt + '</p>'
       + '<p style="font-size:12.5px;margin-bottom:2px">Se\xf1ores:</p>'
       + '<p style="font-size:12.5px;font-weight:700;margin-bottom:2px">' + escapeHTML(fondoTxt) + '</p>'
       + '<p style="font-size:12.5px;margin-bottom:16px">Ciudad</p>'
       + '<p style="font-size:12.5px;font-weight:700;margin-bottom:16px">Asunto: RETIRO PARCIAL DE CESANT\xcdAS PARA VIVIENDA</p>'
       + '<p style="font-size:12.5px;margin-bottom:16px">Respetados Se\xf1ores:</p>'
       + '<p style="font-size:12.5px;line-height:1.8;text-align:justify;margin-bottom:16px">'
-      + 'Yo <strong>' + escapeHTML(firma) + '</strong>, en mi condici\xf3n de Representante Legal de la empresa ' + escapeHTML(EMPRESA.nombre.toUpperCase()) + _empresaNitComa() + ' '
+      + 'Yo <strong>' + escapeHTML(firma) + '</strong>, '
+      + (E.persona
+          ? (E.nit ? 'identificado con NIT ' + escapeHTML(E.nit) + ', ' : '') + 'en mi condici\xf3n de empleador, '
+          : 'en mi condici\xf3n de Representante Legal de la empresa ' + escapeHTML(E.nombre.toUpperCase()) + _nitComa(E) + ' ')
       + 'seg\xfan lo dispuesto en el art\xedculo 21 de la ley 1429 de 2010 (que modific\xf3 el Art 256 del C\xf3digo Sustantivo del Trabajo) y a la aclaraci\xf3n '
       + 'contenida en la carta circular 011 del 07 de febrero del 2011 del Ministerio de la Protecci\xf3n Social, solicito a usted se sirva autorizar el '
       + 'retiro parcial de cesant\xedas para vivienda al funcionario se\xf1alado en las siguientes condiciones:</p>'
@@ -14079,7 +14322,7 @@ function _certRenderCesantias(tipo) {
       + 'Concepto del Retiro: <strong>' + escapeHTML(concepto) + '</strong></p>'
       + '<p style="font-size:12.5px;margin-bottom:16px">Para ser Girado a: <strong>' + escapeHTML(girarA) + '</strong></p>'
       + '<p style="font-size:12.5px;line-height:1.8;text-align:justify;margin-bottom:16px">'
-      + 'La empresa ha verificado que el trabajador va a utilizar sus cesant\xedas en las inversiones u operaciones permitidas por ley.</p>';
+      + (E.persona ? 'El empleador' : 'La empresa') + ' ha verificado que el trabajador va a utilizar sus cesant\xedas en las inversiones u operaciones permitidas por ley.</p>';
   }
 
   const body = document.getElementById('certDocBody');
@@ -14098,7 +14341,8 @@ function certUpdatePreview() {
   }
 
   const fecha     = document.getElementById('certFecha')?.value || new Date().toISOString().slice(0,10);
-  const firma     = (EMPRESA.representante || '').trim().toUpperCase();   // siempre firma el representante legal
+  const E         = empleadorDe(emp);   // la empresa o la persona natural de su centro de costo
+  const firma     = (E.representante || '').toUpperCase();   // firma el representante legal, o el mismo empleador si es persona natural
   const salTxt    = (document.getElementById('certSalarioText')?.value || 'SALARIO MÍNIMO MENSUAL LEGAL VIGENTE (SMMLV) + AUXILIO DE TRANSPORTE LEGAL VIGENTE, CON SUS RESPECTIVAS DEDUCCIONES ESTABLECIDAS POR LEY').trim();
   const salTxtHTML = escapeHTML(salTxt).replace(/\n/g, '<br>');
   const horasTxt  = (document.getElementById('certHorasText')?.value || '42 HORAS SEMANALES').trim();
@@ -14125,13 +14369,15 @@ function certUpdatePreview() {
   const fechaCierre = fechaLargaISO(fecha);
 
   // ── HEADER: logo izquierda + servicios derecha (compartido con las cartas de cesantías) ──
-  const headerHTML = _certHeaderHTML();
+  const headerHTML = _certHeaderHTML(E);
 
   // ── TÍTULO LEGAL ─────────────────────────────────────────────────────────
   const tituloHTML =
     '<div style="text-align:center;font-weight:700;font-size:12.5px;line-height:1.5;margin:0 0 6px">'
-    + 'EL SUSCRITO REPRESENTANTE LEGAL DE LA EMPRESA ' + escapeHTML(EMPRESA.nombre.toUpperCase())
-    + (EMPRESA.nit ? ', NIT ' + escapeHTML(EMPRESA.nit) : '') + ','
+    + (E.persona
+        ? 'EL SUSCRITO EMPLEADOR ' + escapeHTML(E.nombre.toUpperCase()) + (E.nit ? ', IDENTIFICADO CON NIT ' + escapeHTML(E.nit) : '')
+        : 'EL SUSCRITO REPRESENTANTE LEGAL DE LA EMPRESA ' + escapeHTML(E.nombre.toUpperCase()) + (E.nit ? ', NIT ' + escapeHTML(E.nit) : ''))
+    + ','
     + ' EN CUMPLIMIENTO DEL NUMERAL 7 DEL ARTICULO 57 DEL CODIGO SUSTANTIVO DEL TRABAJO'
     + '</div>'
     + '<div style="text-align:center;font-weight:700;font-size:13px;margin-bottom:20px">CERTIFICA QUE:</div>';
@@ -14141,12 +14387,14 @@ function certUpdatePreview() {
   if (isActivoReal) {
     parrafo = '<p style="margin-bottom:10px;font-size:12.5px;line-height:1.7">'
       + 'El (La) se\xf1or (a) <strong>' + escapeHTML(emp.nombre) + '</strong>, identificado con c\xe9dula de ciudadan\xeda'
-      + ' No. <strong>' + escapeHTML(emp.cedula) + '</strong>, se encuentra actualmente vinculado laboralmente a nuestra empresa.</p>'
+      + ' No. <strong>' + escapeHTML(emp.cedula) + '</strong>, se encuentra actualmente vinculado laboralmente '
+      + (E.persona ? 'con el suscrito empleador' : 'a nuestra empresa') + '.</p>'
       + '<p style="margin-bottom:14px;font-size:12.5px">A continuaci\xf3n, se relaciona la informaci\xf3n correspondiente a su vinculaci\xf3n laboral:</p>';
   } else {
     parrafo = '<p style="margin-bottom:14px;font-size:12.5px;line-height:1.7;text-align:justify">'
       + 'El (La) se\xf1or (a) <strong>' + escapeHTML(emp.nombre) + '</strong>, identificado con c\xe9dula de'
-      + ' ciudadan\xeda No. <strong>' + escapeHTML(emp.cedula) + '</strong>, labor\xf3 para nuestra empresa bajo'
+      + ' ciudadan\xeda No. <strong>' + escapeHTML(emp.cedula) + '</strong>, labor\xf3 para '
+      + (E.persona ? 'el suscrito empleador' : 'nuestra empresa') + ' bajo'
       + ' contrato de trabajo, desempe\xf1ando sus funciones con responsabilidad y buen cumplimiento,'
       + ' de acuerdo con las labores asignadas.</p>';
   }
@@ -14257,7 +14505,7 @@ function certUpdatePreview() {
 
   // ── CIERRE ───────────────────────────────────────────────────────────────
   const cierreHTML = '<p style="font-size:12.5px;margin-bottom:6px;line-height:1.7">'
-    + 'La presente certificaci\xf3n se expide en la ciudad de ' + escapeHTML(_empresaCiudad()) + ', a solicitud del interesado el d\xeda '
+    + 'La presente certificaci\xf3n se expide en la ciudad de ' + escapeHTML(_ciudadDe(E)) + ', a solicitud del interesado el d\xeda '
     + fechaCierre + '.</p>';
 
   // ── FIRMA ────────────────────────────────────────────────────────────────
@@ -14270,16 +14518,16 @@ function certUpdatePreview() {
     + '<p style="font-size:12.5px;margin-bottom:4px">Cordialmente,</p>'
     + firmaImg
     + '<p style="font-size:12.5px;font-weight:700;margin:2px 0 0;line-height:1.4">'
-    + escapeHTML(EMPRESA.nombre.toUpperCase()) + '<br>'
-    + (EMPRESA.nit ? 'NIT: ' + escapeHTML(EMPRESA.nit) + '<br>' : '')
-    + escapeHTML(firma) + '<br>'
-    + 'REPRESENTANTE LEGAL'
-    + (EMPRESA.celularRepresentante ? '<br>CELULAR ' + escapeHTML(EMPRESA.celularRepresentante) : '')
+    + (E.persona
+        ? escapeHTML(firma) + '<br>' + (E.nit ? 'NIT: ' + escapeHTML(E.nit) + '<br>' : '') + 'EMPLEADOR'
+        : escapeHTML(E.nombre.toUpperCase()) + '<br>' + (E.nit ? 'NIT: ' + escapeHTML(E.nit) + '<br>' : '')
+          + escapeHTML(firma) + '<br>' + 'REPRESENTANTE LEGAL')
+    + (E.celular ? '<br>CELULAR ' + escapeHTML(E.celular) : '')
     + '</p></div>';
 
-  // ── PIE DE PÁGINA: sedes y correo de la empresa (si están configurados) ─────
-  const lineasPie = EMPRESA.sedes.map(s => escapeHTML(s))
-    .concat(EMPRESA.correo ? ['E-mail: ' + escapeHTML(EMPRESA.correo)] : []);
+  // ── PIE DE PÁGINA: dirección y correo del empleador (si están configurados) ─────
+  const lineasPie = E.pie.map(s => escapeHTML(s))
+    .concat(E.correo ? ['E-mail: ' + escapeHTML(E.correo)] : []);
   const piePagHTML = lineasPie.length
     ? '<div style="margin-top:16px;border-top:1px solid #20449a;padding-top:8px;text-align:center;font-size:9px;font-weight:700;color:#20449a;line-height:1.8">'
       + lineasPie.join('<br>') + '</div>'
@@ -14300,7 +14548,7 @@ function certPrint() {
   if (!content) { showToast('Selecciona un empleado primero'); return; }
   _registrarCertificadoGenerado('IMPRESO', null); // deja evidencia en el historial
 
-  const docHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificado Laboral - ${escapeHTML(EMPRESA.nombre)}</title>
+  const docHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificado Laboral - ${escapeHTML(empleadorDe(_certEmp).nombre)}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;padding:10mm 18mm 8mm;line-height:1.75;background:#fff}
