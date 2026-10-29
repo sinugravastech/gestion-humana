@@ -1430,9 +1430,9 @@ tbody td{font-size:12.5px}
     <div id="sb-sync-dot" style="width:6px;height:6px;border-radius:50%;background:#94a3b8;flex-shrink:0;transition:background .3s,opacity .4s;opacity:.4"></div>
     <span id="sb-sync-txt" style="font-size:9px;color:rgba(255,255,255,.45);font-weight:500">Conectando...</span>
   </div>
-  <a id="sb-nav-portal" class="sb-item" href="#" title="Volver al Portal de accesos" style="text-decoration:none;margin-top:6px">
+  <a id="sb-nav-portal" class="sb-item" href="#" title="Volver al Panel de control" style="text-decoration:none;margin-top:6px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-    Portal
+    Panel de control
   </a>
   <div class="sb-section" id="sb-label-principal">Principal</div>
   <div id="sb-nav-dashboard" class="sb-item active" onclick="showSection('dashboard',this)">
@@ -3518,13 +3518,13 @@ const CARPETA_DOCUMENTOS = 'rh-documentos';
 // ── Envío de certificados por correo: se configura al publicar (vacío = no se envía) ──
 const CERT_MAIL_ENDPOINT = '';
 const CERT_MAIL_TOKEN    = '';
-// Sin portal por ahora: el módulo funciona solo. Cuando exista el panel de usuarios se conecta aquí.
-const PORTAL_URL = '';
+// El Panel de control de SINUGRAVAS: de ahí se entra con pase (ver PASE) y a él vuelve el enlace del menú
+const PORTAL_URL = 'https://panel.sinugravas.com';
 
-// El rol de cada quien sale del panel común (panel_mi_acceso, ver loadUserProfile). Mientras el
-// Panel de control no tenga su pantalla de usuarios, se esconden la «Zona de peligro» y el borrado
-// de la auditoría. Cuando la tenga, esto pasa a false.
-const SIN_ROLES = true;
+// El rol de cada quien sale del panel común (panel_mi_acceso, ver loadUserProfile). Desde el 2026-10-29
+// el Panel de control tiene su pantalla de usuarios, así que la «Zona de peligro» y el borrado de la
+// auditoría vuelven para el administrador de RH. En true se esconden otra vez.
+const SIN_ROLES = false;
 
 // ── Datos de la empresa para certificados, cartas, hojas de vida y correos ──
 // Lo que esté vacío no se imprime. Se completa cuando SINUGRAVAS confirme sus datos.
@@ -3566,13 +3566,24 @@ const _authStorageAdapter = {
   }
 };
 
-// Entrada desde un portal con un pase de un solo uso: no aplica mientras el módulo funcione solo.
-// Se deja apagado (sin pase) para que el código que lo consulta siga igual.
-const PASE = null;
+// Entrada desde el Panel de control con un pase de un solo uso: https://rh.sinugravas.com/#pase=<token>
+// (especificación «puerta-modulos.md» del Panel de control). Se lee ANTES de crear el cliente y se borra
+// de la barra, así no queda en el historial; no se guarda ni se manda a ningún lado. La pestaña queda
+// marcada como «del panel», con un id propio: su sesión vive solo en ella (ver el cliente, abajo).
+const PASE = (() => {
+  const m = /(?:^#|&)pase=([^&]+)/.exec(location.hash);
+  if (!m) return null;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
+  try { sessionStorage.setItem('portal.pestana', Date.now().toString(36) + Math.random().toString(36).slice(2, 10)); } catch (e) {}
+  try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
+})();
 let PESTANA = null;
-const DESDE_PORTAL = false;
+try { PESTANA = sessionStorage.getItem('portal.pestana'); } catch (e) {}   // con el almacenamiento bloqueado: como siempre
+const DESDE_PORTAL = !!PESTANA;
 
-const sb = MODO_LOCAL ? BaseLocal.cliente() : supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+// Con una pestaña del panel, la sesión va en sessionStorage con una llave que lleva el id de la pestaña:
+// una recarga sigue adentro, al cerrarla se acaba, y salir en una pestaña no saca a las otras
+const sb = MODO_LOCAL ? BaseLocal.cliente(DESDE_PORTAL ? { auth: { storage: window.sessionStorage, storageKey: 'portal-pestana-sesion-' + PESTANA } } : {}) : supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: 'rh' },   // las tablas de RH van en su propio esquema, como las de flota
   auth: DESDE_PORTAL
     ? { persistSession: true, autoRefreshToken: true, storage: window.sessionStorage, storageKey: 'portal-pestana-sesion-' + PESTANA }
@@ -6268,15 +6279,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (zona) zona.style.display = 'none';
   }
 
-  // Entrada desde el Portal: el pase se canjea por una sesión nueva, solo de esta pestaña
+  // Entrada desde el Panel de control: el pase se canjea por una sesión nueva, solo de esta pestaña
   if (PASE) {
     let errPase = null;
-    showBlockingOverlay('Entrando desde el Portal...');
+    showBlockingOverlay('Entrando desde el Panel de control...');
     try { ({ error: errPase } = await sb.auth.verifyOtp({ token_hash: PASE, type: 'email' })); }
     catch (e) { errPase = e; }
     finally { hideBlockingOverlay(); }
     if (errPase) {
-      _avisoLoginConPortal('El enlace del Portal ya se usó o venció. Vuelve al Portal y entra otra vez, o ingresa con tu contraseña.');
+      _avisoLoginConPortal('El enlace del Panel de control ya se usó o venció. Vuelve al panel y entra otra vez, o ingresa con tu contraseña.');
       return;
     }
   }
@@ -6288,6 +6299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (acceso !== 'ok') { await _sinPerfilRH(acceso); return; }
     mostrarApp(session.user.email);
     applyRoleVisibility();
+    if (PASE) await logAudit('login', 'sesion', session.user.id, 'Entró desde el Panel de control');
     if (!canAccess('dashboard')) _irASeccionInicial();   // sin Dashboard: a la primera sección que puede ver
     _resetInactivity();
     await loadCatalogsFromDB();
@@ -10210,7 +10222,7 @@ async function _sinPerfilRH(estado) {
   if (estado === 'sin_acceso') {
     try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {}
     if (_rhAccesoRetirado) _avisoLoginConPortal(RH_AVISO_RETIRADO);
-    else if (DESDE_PORTAL) _avisoLoginConPortal('No tienes acceso al Módulo de RH. Pídeselo al administrador.');
+    else if (DESDE_PORTAL) _avisoLoginConPortal('No tienes acceso a Gestión Humana. Pídeselo al administrador en el Panel de control.');
     else if (errEl) errEl.textContent = 'Tu usuario no tiene acceso a Recursos Humanos. Pídeselo al administrador.';
   } else if (errEl) errEl.textContent = 'No se pudo verificar tu acceso. Revisa la conexión e intenta de nuevo.';
 }
@@ -10291,14 +10303,16 @@ function _avisoPermisosCambiaron(mostrar) {
   document.getElementById('topbar')?.after(av);
 }
 
-// Aviso en la pantalla de login con un enlace para volver al Portal (entrada desde el Portal)
-function _avisoLoginConPortal(texto) {
+// Aviso en la pantalla de login con un enlace para volver al Panel de control (entrada desde el panel).
+// Con «neutro» sale en gris: no es un error (p. ej. al salir).
+function _avisoLoginConPortal(texto, neutro) {
   const errEl = document.getElementById('login-error');
   if (!errEl) return;
+  errEl.style.color = neutro ? 'var(--text2)' : '';
   errEl.textContent = texto + ' ';
   const a = document.createElement('a');
   a.href = PORTAL_URL;
-  a.textContent = 'Volver al Portal';
+  a.textContent = 'Volver al Panel de control';
   a.style.cssText = 'color:inherit;font-weight:700;text-decoration:underline';
   errEl.appendChild(a);
 }
@@ -10583,6 +10597,7 @@ async function doLogin() {
   const pass  =  document.getElementById('login-password').value || '';
   const errEl =  document.getElementById('login-error');
   const btn   =  document.getElementById('login-btn');
+  errEl.style.color = '';   // los errores del ingreso salen en rojo, aunque antes hubiera un aviso en gris
 
   if (!email || !pass) { errEl.textContent = 'Ingresa tu correo y contrasena.'; return; }
 
@@ -10818,6 +10833,8 @@ async function doLogout() {
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').textContent = '';
+  // En una pestaña que vino del panel solo se sale de RH aquí: el panel y los demás módulos siguen abiertos
+  if (DESDE_PORTAL) _avisoLoginConPortal('Saliste de Gestión Humana en esta pestaña. El Panel de control y los demás módulos siguen abiertos.', true);
   showToast('Sesion cerrada');
 }
 function escapeHTML(s) {
