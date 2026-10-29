@@ -2799,7 +2799,7 @@ tbody td{font-size:12.5px}
     <div class="panel-tab" onclick="switchTab(this,'tab-laboral')">Datos Laborales</div>
     <div class="panel-tab" onclick="switchTab(this,'tab-seguridad')">Seguridad Social</div>
     <div class="panel-tab" onclick="switchTab(this,'tab-historial')">Historial</div>
-    <div class="panel-tab" onclick="switchTab(this,'tab-novedades')">Novedades</div>
+    <div class="panel-tab" id="panel-tab-novedades" onclick="switchTab(this,'tab-novedades')">Novedades</div>
     <div class="panel-tab" onclick="switchTab(this,'tab-docs');loadDocumentos()">
       &#128206; Documentos <span id="docs-badge" style="display:none;background:var(--blue);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:3px">0</span>
     </div>
@@ -6112,7 +6112,7 @@ function renderAlerts(){
               style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg1);color:var(--text1);max-width:180px">
               <option value="">— Asignar cargo —</option>
               ${cargoOpts}
-              <option value="__nuevo__">✏ Agregar nuevo...</option>
+              ${isAdmin() ? '<option value="__nuevo__">✏ Agregar nuevo...</option>' : ''}
             </select>
             <span class="alert-emp-action" onclick="openPanel(${e.id})">Ver perfil</span>
           </div>
@@ -6139,7 +6139,7 @@ function renderAlerts(){
               style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg1);color:var(--text1);max-width:180px">
               <option value="">— Asignar cliente —</option>
               ${clienteOpts}
-              <option value="__nuevo__">✏ Agregar nuevo...</option>
+              ${isAdmin() ? '<option value="__nuevo__">✏ Agregar nuevo...</option>' : ''}
             </select>
             <span class="alert-emp-action" onclick="openPanel(${e.id})">Ver perfil</span>
           </div>
@@ -6199,8 +6199,9 @@ async function asignarCampoAlerta(empId, campo, valor, selectEl) {
   if (_soloConsulta('duplicados')) { if (selectEl) selectEl.value = ''; return; }
   if (!valor) return;
 
-  // Opción "Agregar nuevo": pedir nombre y agregar al catálogo
+  // Opción "Agregar nuevo": pedir nombre y agregar al catálogo (los catálogos los cambia solo el administrador)
   if (valor === '__nuevo__') {
+    if (!isAdmin()) { showToast('Solo el administrador agrega valores a los catálogos'); if (selectEl) selectEl.value = ''; return; }
     const catKey = campo === 'cargo' ? 'cargos' : 'clientes';
     const nuevo = prompt('Escribe el nuevo ' + campo + ' para agregar al cat\xe1logo:');
     if (!nuevo || !nuevo.trim()) { if(selectEl) selectEl.value=''; return; }
@@ -7495,7 +7496,7 @@ async function loadCatalogsFromDB() {
 }
 
 async function persistCatalog(key) {
-  if (_soloConsulta('catalogos', 'duplicados')) return;
+  if (_soloConsulta('catalogos')) return;   // los catálogos los cambia solo el administrador (regla 112)
   if (!CATALOGS[key]) return;
   await sb.from('catalogs').upsert({ key, items: CATALOGS[key], updated_at: new Date().toISOString() });
 }
@@ -10067,9 +10068,12 @@ function isAuxiliar() { return _currentUser?.role === 'auxiliar'; }
 // rh_mis_secciones() y las hace cumplir con sus reglas; la página solo muestra lo que corresponde.
 // Copia de public.rh_plantilla: solo se usa si la base no responde (la base manda).
 const PLANTILLAS_RH = (() => {
+  // Roles de SINUGRAVAS (aprobados por Juan el 2026-10-29, los da el Panel de control): el Editor entra a
+  // todo menos Catálogos, Auditoría y Respaldo y datos; el Visualizador solo mira Dashboard y Empleados.
+  // Seguimientos médicos va con la acción «medico» y Respaldo y datos es solo del admin (ver canAccess).
   const editor = { dashboard:'ver', empleados:'editar', novedades:'editar', importacion:'editar', duplicados:'editar',
-                   catalogos:'editar', certificados:'editar', fechas:'ver', estadisticas:'ver', auditoria:'ver' };
-  return { admin: editor, editor: editor,
+                   certificados:'editar', fechas:'ver', estadisticas:'ver' };
+  return { admin: Object.assign({}, editor, { catalogos:'editar', auditoria:'ver' }), editor: editor,
            auxiliar: { dashboard:'ver', empleados:'ver', novedades:'editar' },
            viewer:   { dashboard:'ver', empleados:'ver' },
            // Supervisor: maneja los empleados y las novedades de SUS contratos (siempre tiene contratos)
@@ -10376,6 +10380,9 @@ function applyRoleVisibility() {
   if (!isAdmin() && document.getElementById('dup-tab-masiva')?.classList.contains('active')) {
     switchDupTab('alertas');
   }
+  // La pestaña Novedades de la ficha: solo para quien entra a Novedades (el Visualizador no las lee)
+  const tabNovFicha = document.getElementById('panel-tab-novedades');
+  if (tabNovFicha) tabNovFicha.style.display = canAccess('novedades') ? '' : 'none';
 
   // ── Botones en sección Empleados ──────────────────────────────────────
   // Nuevo empleado: solo editores/admins
@@ -12430,8 +12437,8 @@ async function unificarVarianteNombre(idx) {
       if (variantOk) ok++;
     }
 
-    // Si el nombre nuevo no está en el catálogo, agregarlo
-    if (!CATALOGS[catKey].some(c => c.toUpperCase() === targetName.toUpperCase())) {
+    // Si el nombre nuevo no está en el catálogo, agregarlo (solo el administrador cambia los catálogos)
+    if (isAdmin() && !CATALOGS[catKey].some(c => c.toUpperCase() === targetName.toUpperCase())) {
       CATALOGS[catKey].push(targetName);
       CATALOGS[catKey].sort();
       persistCatalog(catKey);
@@ -12794,7 +12801,7 @@ function buildDuplicados() {
           + '<option value="">— Seleccionar —</option>'
           + '<optgroup label="Catálogo ('+catalog.length+' entradas)">' + optsHtml + '</optgroup>'
           + variantOpts
-          + '<option value="__nuevo__">✏ Escribir nombre nuevo...</option>'
+          + (isAdmin() ? '<option value="__nuevo__">✏ Escribir nombre nuevo...</option>' : '')   // un nombre nuevo va al catálogo: solo el admin
           + '</select>'
           + (catMatch?'<span style="font-size:11px;color:var(--green);font-weight:600">&#10003; Del cat\xe1logo</span>':'<span style="font-size:11px;color:var(--orange)">&#9888; Elige del cat\xe1logo o escribe</span>')
           + '</div>'
@@ -15360,7 +15367,7 @@ function cmIrListado(opc) {   // compatibilidad (enlaces desde la importación)
 
 function cmHtmlPanelInterior() {
   if (CM.tab === 'importar' || CM.tab === 'listas') {
-    if (!cmPuede('admin')) { CM.tab = 'todos'; return cmHtmlPanelInterior(); }
+    if (!cmPuede('admin') || (CM.tab === 'listas' && !isAdmin())) { CM.tab = 'todos'; return cmHtmlPanelInterior(); }
     return cmHtmlTabs() + '<div class="cmx-pagina"><div class="cmx-pagina-cab">'
       + '<button class="cmx-btn chico" onclick="cmIrTab(\'todos\')">' + cmIc('atras') + 'Volver a los casos</button>'
       + '<h2>' + (CM.tab === 'importar' ? 'Importar histórico desde Excel' : 'Listas configurables') + '</h2></div>'
@@ -15624,8 +15631,9 @@ function cmCerrarMenu() { document.getElementById('cm-menu')?.remove(); }
 function cmItemsMas() {
   const it = [['refrescar', 'Actualizar datos', 'cmRecargar()']];
   if (cmPuede('reportes')) it.push(['descargar', 'Exportar casos a Excel', 'cmExportarListadoExcel()']);
-  if (cmPuede('admin')) {
-    it.push(['subir', 'Importar histórico desde Excel', "cmIrTab('importar')"]);
+  if (cmPuede('admin')) it.push(['subir', 'Importar histórico desde Excel', "cmIrTab('importar')"]);
+  // Las listas se guardan en los catálogos: las cambia solo el administrador de RH (regla 112)
+  if (isAdmin()) {
     it.push('-');
     it.push(['ajustes', 'Listas configurables', "cmIrTab('listas')"]);
   }
