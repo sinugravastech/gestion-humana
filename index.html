@@ -13746,6 +13746,8 @@ function _blobADataUrl(blob) {
 }
 
 async function cargarFirmaRepresentante() {
+  // La firma la descargan solo quienes hacen certificados: Administrador y Editor (regla 113)
+  if (!puedeEditar('certificados')) { FIRMA_GERENTE_B64 = ''; pintarTarjetaFirma(); return; }
   try {
     const { data, error } = await sb.storage.from(CARPETA_EMPRESA).download(RUTA_FIRMA);
     FIRMA_GERENTE_B64 = (!error && data && data.size) ? await _blobADataUrl(data) : '';
