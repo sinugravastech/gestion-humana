@@ -2912,6 +2912,22 @@ tbody td{font-size:12.5px}
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="centro-tipo" value="persona" onchange="_centroTipoCambio()"> Una persona natural</label>
         </div>
       </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Logo (sale en el certificado laboral y en las cartas de cesantías)</label>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <div id="centro-logo-vista" style="width:170px;height:86px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;font-size:11px;color:var(--text3);text-align:center;padding:6px;flex-shrink:0"></div>
+          <div style="flex:1;min-width:200px">
+            <div id="centro-logo-nota" style="font-size:12px;color:#475569;margin-bottom:8px"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0">Subir logo
+                <input type="file" id="centro-logo-archivo" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="_centroLogoElegido(this)">
+              </label>
+              <button type="button" class="btn btn-ghost btn-sm" id="centro-logo-quitar" onclick="_centroLogoQuitar()">Quitar logo</button>
+              <span class="form-hint" style="margin:0">Mejor en PNG sin fondo · máximo 1 MB</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group" style="grid-column:span 2">
           <label class="form-label" id="centro-nombre-label">Razón social *</label>
@@ -7214,6 +7230,7 @@ function abrirDatosCentro(idx) {
   poner('centro-celular', E.celular);
   poner('centro-direccion', E.pie.join(' · '));
   poner('centro-correo', E.correo);
+  _centroLogo = { archivo: null, vista: '', quitar: false };
   _centroTipoCambio(true);
   aplicarNombresCatalogos(document.getElementById('modal-centro-costo'));
   document.getElementById('modal-centro-costo').style.display = 'flex';
@@ -7225,6 +7242,7 @@ function _centroTipoCambio(alAbrir) {
   document.getElementById('centro-nombre-label').textContent = persona ? 'Nombre completo *' : 'Razón social *';
   document.getElementById('centro-nit-label').textContent = persona ? 'NIT o cédula *' : 'NIT *';
   document.getElementById('centro-representante-grupo').style.display = persona ? 'none' : '';
+  _pintarLogoCentro();   // sin logo propio, la persona natural sale sin logo y la empresa con el de SINUGRAVAS
   if (alAbrir) return;
   // Si al pasar a persona natural todavía tiene los datos de la empresa, se sugiere el nombre de quien firma
   const nombre = document.getElementById('centro-nombre'), nit = document.getElementById('centro-nit');
@@ -7237,12 +7255,54 @@ function _centroTipoCambio(alAbrir) {
 function cerrarDatosCentro() {
   document.getElementById('modal-centro-costo').style.display = 'none';
 }
+// El logo del centro de costo se elige aquí y queda guardado con «Guardar», en el depósito privado
+// rh-empresa (como la firma). «Quitar logo» lo devuelve al de SINUGRAVAS.
+let _centroLogo = { archivo: null, vista: '', quitar: false };
+function _pintarLogoCentro() {
+  const vista = document.getElementById('centro-logo-vista');
+  if (!vista || !_centroEditando) return;
+  const persona = document.querySelector('input[name="centro-tipo"]:checked')?.value === 'persona';
+  const ruta = (_datosCentro(_centroEditando) || {}).logo_path || '';
+  const conPropio = !!ruta && !_centroLogo.quitar;
+  const img = src => '<img src="' + src + '" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain">';
+  let nota;
+  if (_centroLogo.archivo) {
+    vista.innerHTML = img(_centroLogo.vista);
+    nota = 'Logo nuevo: queda guardado cuando le des «Guardar».';
+  } else if (conPropio) {
+    if (LOGOS_CENTRO[ruta]) vista.innerHTML = img(LOGOS_CENTRO[ruta]); else vista.textContent = 'No se pudo cargar el logo';
+    nota = 'Logo propio de este ' + nombreCampoMin('clientes') + '.';
+  } else if (persona) {
+    vista.textContent = 'Sin logo';
+    nota = 'Sin logo propio, los documentos de la persona natural salen con su nombre y su NIT.';
+  } else {
+    if (_logoSinugravas()) vista.innerHTML = img(_logoSinugravas()); else vista.textContent = 'Sin logo';
+    nota = 'El de ' + EMPRESA.nombre + ', que sale por defecto.';
+  }
+  if (ruta && _centroLogo.quitar && !_centroLogo.archivo) nota = 'Al guardar se quita el logo propio. ' + nota;
+  document.getElementById('centro-logo-nota').textContent = nota;
+  document.getElementById('centro-logo-quitar').style.display = (_centroLogo.archivo || conPropio) ? '' : 'none';
+}
+async function _centroLogoElegido(input) {
+  const f = input.files && input.files[0];
+  input.value = '';
+  if (!f || !isAdmin()) return;
+  if (!/^image\/(png|jpeg|webp)$/.test(f.type)) { showToast('El logo debe ser PNG, JPG o WEBP'); return; }
+  if (f.size > 1024 * 1024) { showToast('El logo pesa más de 1 MB'); return; }
+  _centroLogo = { archivo: f, vista: await _blobADataUrl(f), quitar: false };
+  _pintarLogoCentro();
+}
+function _centroLogoQuitar() {
+  _centroLogo = { archivo: null, vista: '', quitar: true };
+  _pintarLogoCentro();
+}
 async function guardarDatosCentro() {
   if (!isAdmin() || !_centroEditando) return;
   const v = id => document.getElementById(id).value.replace(/\s+/g, ' ').trim();
   const persona = document.querySelector('input[name="centro-tipo"]:checked')?.value === 'persona';
+  const antes = _datosCentro(_centroEditando) || {};
   const fila = {
-    centro: (_datosCentro(_centroEditando) || {}).centro || _centroEditando,   // si ya tenía datos, con la misma llave
+    centro: antes.centro || _centroEditando,   // si ya tenía datos, con la misma llave
     tipo: persona ? 'persona' : 'empresa',
     nombre: v('centro-nombre'), nit: v('centro-nit'), representante: persona ? '' : v('centro-representante'),
     ciudad: v('centro-ciudad'), celular: v('centro-celular'), direccion: v('centro-direccion'), correo: v('centro-correo'),
@@ -7250,13 +7310,36 @@ async function guardarDatosCentro() {
   };
   if (!fila.nombre) { showToast(persona ? 'Escribe el nombre completo' : 'Escribe la razón social'); return; }
   if (!fila.nit) { showToast('Escribe el NIT'); return; }
-  const { error } = await sb.from('centros_costo').upsert(fila, { onConflict: 'centro' });
-  if (error) { showToast('No se pudieron guardar los datos: ' + escapeHTML(error.message)); return; }
+  // El logo nuevo se sube antes de guardar los datos, y el de antes se borra cuando ya quedaron guardados
+  const rutaAntes = antes.logo_path || null;
+  const quitaLogo = !_centroLogo.archivo && _centroLogo.quitar && !!rutaAntes;
+  let subido = null;
+  if (_centroLogo.archivo) showBlockingOverlay('Guardando el logo...');
+  try {
+    if (_centroLogo.archivo) {
+      const f = _centroLogo.archivo;
+      subido = 'logos/' + _rutaLogoCentro(fila.centro) + '-' + Date.now() + '.' + (f.type === 'image/png' ? 'png' : f.type === 'image/webp' ? 'webp' : 'jpg');
+      const { error: errLogo } = await sb.storage.from(CARPETA_EMPRESA).upload(subido, f, { contentType: f.type });
+      if (errLogo) { showToast('No se pudo guardar el logo: ' + escapeHTML(errLogo.message)); return; }
+      fila.logo_path = subido;
+    } else if (quitaLogo) fila.logo_path = null;
+    const { error } = await sb.from('centros_costo').upsert(fila, { onConflict: 'centro' });
+    if (error) {
+      if (subido) { try { await sb.storage.from(CARPETA_EMPRESA).remove([subido]); } catch (e) {} }
+      showToast('No se pudieron guardar los datos: ' + escapeHTML(error.message)); return;
+    }
+    if (subido) LOGOS_CENTRO[subido] = _centroLogo.vista;
+    if ((subido || quitaLogo) && rutaAntes) {
+      try { await sb.storage.from(CARPETA_EMPRESA).remove([rutaAntes]); } catch (e) {}
+      delete LOGOS_CENTRO[rutaAntes];
+    }
+  } finally { if (_centroLogo.archivo) hideBlockingOverlay(); }
   const i = CENTROS_COSTO.findIndex(c => c.centro === fila.centro);
   if (i >= 0) CENTROS_COSTO[i] = Object.assign({}, CENTROS_COSTO[i], fila); else CENTROS_COSTO.push(fila);
   try {
     await logAudit('update', 'catalogos', 'centros_costo', 'Guardó los datos para certificados de «' + _centroEditando + '»: '
-      + fila.nombre + ' · NIT ' + fila.nit + (persona ? ' (persona natural)' : ''));
+      + fila.nombre + ' · NIT ' + fila.nit + (persona ? ' (persona natural)' : '')
+      + (subido ? ' · con un logo nuevo' : quitaLogo ? ' · sin logo propio' : ''));
   } catch (e) {}
   cerrarDatosCentro();
   if (activeCatalog === 'clientes') renderCatalogItems('clientes', document.getElementById('catalogSearch')?.value || '', _catPage);
@@ -7425,13 +7508,14 @@ function renderCatalogItems(key, q, page) {
     const datos = esCentros ? _datosCentro(itemStr) : null;
     const lineaCentro = !esCentros ? '' : '<div class="catalog-item-empleador">' + (datos && String(datos.nombre || '').trim()
       ? 'Certifica: ' + escapeHTML(datos.nombre) + (datos.nit ? ' · NIT ' + escapeHTML(datos.nit) : '') + (datos.tipo === 'persona' ? ' · persona natural' : '')
+        + (datos.logo_path ? ' · con su logo' : '')
       : 'Sin datos para certificados: sale con los de ' + escapeHTML(EMPRESA.nombre)) + '</div>';
 
     return `<div class="catalog-item-row" id="cat-row-${i}">
       <div class="catalog-item-name">${escapeHTML(itemStr)}${lineaCentro}</div>
       <div class="catalog-item-meta" style="${usage>0?'color:var(--blue)':''}">${usageTxt}</div>
       <div class="catalog-item-actions">
-        ${esCentros && isAdmin() ? `<button class="btn btn-ghost btn-sm" onclick="abrirDatosCentro(${realIdx})" title="Nombre, NIT y demás datos con los que salen sus certificados">Datos para certificados</button>` : ''}
+        ${esCentros && isAdmin() ? `<button class="btn btn-ghost btn-sm" onclick="abrirDatosCentro(${realIdx})" title="Nombre, NIT, logo y demás datos con los que salen sus certificados">Datos para certificados</button>` : ''}
         <button class="btn-icon" onclick="editCatalogInline(${realIdx},'${key}')" title="Editar">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
@@ -7470,7 +7554,7 @@ function renderCatalogItems(key, q, page) {
   // En los centros de costo, una nota para el administrador sobre los datos de los certificados
   const notaCentros = esCentros && isAdmin()
     ? '<div class="catalog-nota-centros">Cada ' + escapeHTML(nombreCampoMin('clientes')) + ' certifica a nombre de su empleador (una empresa o una persona natural). '
-      + 'Con «Datos para certificados» pones el nombre, el NIT y lo demás que sale en los certificados y las cartas.</div>'
+      + 'Con «Datos para certificados» pones el nombre, el NIT, el logo y lo demás que sale en los certificados y las cartas.</div>'
     : '';
   el.innerHTML = notaCentros + rows + pager;
 }
@@ -14227,6 +14311,23 @@ async function cargarCentrosCosto() {
     const { data, error } = await sb.from('centros_costo').select('*');
     CENTROS_COSTO = !error && Array.isArray(data) ? data : [];
   } catch (e) { CENTROS_COSTO = []; }   // sin la tabla todavía: todo sale con los datos de EMPRESA
+  await _cargarLogosCentros();
+}
+// Logo propio de cada centro de costo (centros_costo.logo_path, en el depósito privado rh-empresa). Lo
+// descargan solo quienes hacen certificados, igual que la firma (regla 113). Sin logo propio sale el de SINUGRAVAS.
+const LOGOS_CENTRO = {};   // ruta del logo → imagen lista para los documentos
+const _logoSinugravas = () => (typeof LOGO_B64 !== 'undefined' && LOGO_B64) || '';
+const _rutaLogoCentro = c => removeAccents(String(c || '')).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'centro';
+async function _cargarLogosCentros() {
+  if (!puedeEditar('certificados')) return;
+  for (const c of CENTROS_COSTO) {
+    const ruta = c && c.logo_path;
+    if (!ruta || LOGOS_CENTRO[ruta]) continue;
+    try {
+      const { data, error } = await sb.storage.from(CARPETA_EMPRESA).download(ruta);
+      if (!error && data && data.size && /^image\//.test(data.type)) LOGOS_CENTRO[ruta] = await _blobADataUrl(data);
+    } catch (e) { /* sin el logo, el documento sale sin él: nunca con el de otro empleador */ }
+  }
 }
 const _claveCentro = v => removeAccents(String(v || '').replace(/\s+/g, ' ').trim().toUpperCase());
 function _datosCentro(centro) {
@@ -14241,22 +14342,25 @@ function empleadorDe(emp) {
     const persona = d.tipo === 'persona';
     return { persona, nombre: t(d.nombre), nit: t(d.nit), representante: persona ? t(d.nombre) : t(d.representante),
              ciudad: t(d.ciudad), celular: t(d.celular), correo: t(d.correo), pie: t(d.direccion) ? [t(d.direccion)] : [],
+             // Su logo propio; sin él, la empresa sale con el de SINUGRAVAS y la persona natural sin logo
+             logo: d.logo_path ? (LOGOS_CENTRO[d.logo_path] || '') : (persona ? '' : _logoSinugravas()),
              deFabrica: false };
   }
   return { persona: false, nombre: EMPRESA.nombre, nit: EMPRESA.nit, representante: EMPRESA.representante,
            ciudad: EMPRESA.ciudad, celular: EMPRESA.celularRepresentante, correo: EMPRESA.correo, pie: EMPRESA.sedes.slice(),
-           deFabrica: true };
+           logo: _logoSinugravas(), deFabrica: true };
 }
 // Dos registros son del mismo empleador si salen con el mismo nombre y el mismo NIT
 function _claveEmpleador(emp) { const E = empleadorDe(emp); return _claveCentro(E.nombre) + '|' + _claveCentro(E.nit); }
 function _nitComa(E)  { return (E.nit ? ' Nit: ' + escapeHTML(E.nit) : '') + ','; }
 function _ciudadDe(E) { return E.ciudad || '____________________'; }
 
-// Encabezado oficial, compartido entre certificado y cartas. Empresa: logo + NIT + servicios en azul.
-// Persona natural: su nombre y su NIT, sin el logo de la empresa.
+// Encabezado oficial, compartido entre certificado y cartas, con el logo del empleador (empleadorDe). Empresa:
+// logo + NIT + servicios en azul. Persona natural: su logo si tiene, y su nombre y su NIT.
 function _certHeaderHTML(E) {
   if (E.persona) {
     return '<div style="text-align:center;margin-bottom:18px">'
+      + (E.logo ? '<div style="margin-bottom:8px"><img src="' + E.logo + '" alt="Logo" style="height:70px;width:auto;max-width:260px;object-fit:contain"></div>' : '')
       + '<div style="font-size:15px;font-weight:700;color:#1e293b;letter-spacing:.5px">' + escapeHTML(E.nombre.toUpperCase()) + '</div>'
       + (E.nit ? '<div style="font-size:11px;font-weight:700;color:#1e293b;margin-top:2px">NIT: ' + escapeHTML(E.nit) + '</div>' : '')
       + '</div>'
@@ -14264,7 +14368,7 @@ function _certHeaderHTML(E) {
   }
   return '<div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:18px">'
     + '<div style="flex-shrink:0;text-align:center">'
-    + (typeof LOGO_B64!=='undefined'&&LOGO_B64 ? '<img src="'+LOGO_B64+'" style="height:80px;width:auto">' : '')
+    + (E.logo ? '<img src="' + E.logo + '" alt="Logo" style="height:80px;width:auto;max-width:260px;object-fit:contain">' : '')
     + (E.nit ? '<div style="font-size:10px;font-weight:700;color:#1e293b;margin-top:2px">NIT: ' + escapeHTML(E.nit) + '</div>' : '')
     + '</div>'
     + '<div style="flex:1;text-align:center;font-size:8px;font-weight:700;color:#20449a;line-height:1.55;padding-top:4px">'
